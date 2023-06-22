@@ -367,7 +367,7 @@ var SharpGrayscaleComponent = {
         required: [],
         "properties": {
           "Grayscale": {
-            "title": "",
+            "title": "Grayscale",
             "type": "boolean",
             "default": true,
             "description": `Grayscale the Image`
