@@ -366,29 +366,11 @@ var SharpGrayscaleComponent = {
         "type": "object",
         required: [],
         "properties": {
-          "left": {
-            "title": "Left",
-            "type": "number",
-            "default": 0,
-            "minimum": 0
-          },
-          "top": {
-            "title": "Top",
-            "type": "number",
-            "default": 0,
-            "minimum": 0
-          },
-          "width": {
-            "title": "Width",
-            "type": "number",
-            "default": 512,
-            "minimum": 0
-          },
-          "height": {
-            "title": "height",
-            "type": "number",
-            "default": 512,
-            "minimum": 0
+          "Grayscale": {
+            "title": "Grayscale",
+            "type": "boolean",
+            "default": true,
+            "description": `Grayscale the Image`
           }
         }
       },
@@ -404,7 +386,7 @@ var SharpGrayscaleComponent = {
                 "title": "Images",
                 "type": "object",
                 "x-type": "imageArray",
-                "description": "The processed images"
+                "description": "The grayscaled images"
               }
             }
           },
@@ -414,18 +396,15 @@ var SharpGrayscaleComponent = {
       "method": "X-CUSTOM"
     },
     patch: {
-      "title": "Extract Image Region (Sharp)",
+      "title": "Grayscale Image (Sharp)",
       "category": "Image Manipulation",
-      "summary": "Extracts/Crops an image region",
+      "summary": "Convert an image to 8-bit, 256 color grayscale",
       "meta": {
         "source": {
-          "summary": `Extract/crop a region of the image.
-            Use extract before resize for pre-resize extraction.
-            Use extract after resize for post-resize extraction.
-            Use extract before and after for both.`,
+          "summary": "Convert to 8-bit greyscale; 256 shades of grey. This is a linear operation. If the input image is in a non-linear colour space such as sRGB, use gamma() with greyscale() for the best results. By default the output image will be web-friendly sRGB and contain three (identical) color channels. This may be overridden by other sharp operations such as toColourspace('b-w'), which will produce an output image containing one color channel. An alpha channel may be present, and will be unchanged by the operation.",
           links: {
             "Sharp Website": "https://sharp.pixelplumbing.com/",
-            "Documentation": "https://sharp.pixelplumbing.com/api-operation#extract",
+            "Documentation": "https://sharp.pixelplumbing.com/api-operation#grayscale",
             "Sharp Github": "https://github.com/lovell/sharp",
             "Support Sharp": "https://opencollective.com/libvips"
           }
@@ -436,7 +415,7 @@ var SharpGrayscaleComponent = {
           "type": "object",
           "x-type": "imageArray",
           "title": "Image",
-          "description": "The image(s) to extract from",
+          "description": "The image(s) to grayscale",
           "required": true,
           "control": {
             "type": "AlpineLabelComponent"

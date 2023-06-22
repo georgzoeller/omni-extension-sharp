@@ -460,6 +460,117 @@ const SharpRotationComponent =
           "type": "object",
           required:[],
           "properties": {
+            "Grayscale": {
+              "title": "Grayscale",
+              "type": "boolean",
+              "default": true,
+              "description": `Grayscale the Image`
+            }
+          },
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+
+              "required": [
+                "images"
+              ],
+              "type": "string",
+              "properties": {
+                "images": {
+                  "title": "Images",
+                  "type": "object",
+                  "x-type": "imageArray",
+                  "description": "The grayscaled images"
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Grayscale Image (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Convert an image to 8-bit, 256 color grayscale",
+        "meta":
+        {
+          "source":
+          {
+            "summary": "Convert to 8-bit greyscale; 256 shades of grey. This is a linear operation. If the input image is in a non-linear colour space such as sRGB, use gamma() with greyscale() for the best results. By default the output image will be web-friendly sRGB and contain three (identical) color channels. This may be overridden by other sharp operations such as toColourspace('b-w'), which will produce an output image containing one color channel. An alpha channel may be present, and will be unchanged by the operation.",
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-operation#grayscale",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to grayscale",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          }
+        }
+      }
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images)
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+
+            image.data = await sharp(image.data).grayscale(payload.grayscale).toBuffer()
+            return image
+          }))
+
+          // write new record
+          results = await Promise.all(results.map((image: any) =>
+          {
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {grayscale: payload.grayscale}))
+          }))
+
+          payload.images = results
+        }
+
+        return payload
+      }
+    }
+  }
+  const SharpExtractComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "extract",
+      "operation": {
+
+        "schema": {
+          "title": "Extract Image",
+          "type": "object",
+          required:[],
+          "properties": {
             "left": {
               "title": "Left",
               "type": "number",
@@ -561,118 +672,7 @@ const SharpRotationComponent =
 
           let results = await Promise.all(images.map(async (image: any) =>
           {
-
-            image.data = await sharp(image.data).grayscale(payload.grayscale).toBuffer()
-            return image
-          }))
-
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {grayscale: payload.grayscale}))
-          }))
-
-          payload.images = results
-        }
-
-        return payload
-      }
-    }
-  }
-  const SharpExtractComponent =
-  {
-    schema:
-    {
-      "tags": ['default'],
-      "componentKey": "extract",
-      "operation": {
-
-        "schema": {
-          "title": "Extract Image Region",
-          "type": "object",
-          required:[],
-          "properties": {
-            "Grayscale": {
-              "title": "Options",
-              "type": "object",
-              "default": {left: 0, right: 0, top: 512, bottom: 512},
-              "description": `Grayscale the Image`
-            }
-          },
-        },
-        "responseTypes": {
-          "200": {
-            "schema": {
-
-              "required": [
-                "images"
-              ],
-              "type": "string",
-              "properties": {
-                "images": {
-                  "title": "Images",
-                  "type": "object",
-                  "x-type": "imageArray",
-                  "description": "The tinted images"
-                },
-              },
-            },
-            "contentType": "application/json"
-          },
-        },
-        "method": "X-CUSTOM"
-      },
-      patch:
-      {
-        "title": "Extract Image Region (Sharp)",
-        "category": "Image Manipulation",
-        "summary": "Convert an image to 8-bit, 256 color grayscale",
-        "meta":
-        {
-          "source":
-          {
-            "summary": "Convert to 8-bit greyscale; 256 shades of grey. This is a linear operation. If the input image is in a non-linear colour space such as sRGB, use gamma() with greyscale() for the best results. By default the output image will be web-friendly sRGB and contain three (identical) color channels. This may be overridden by other sharp operations such as toColourspace('b-w'), which will produce an output image containing one color channel. An alpha channel may be present, and will be unchanged by the operation.",
-            links:
-            {
-              "Sharp Website": "https://sharp.pixelplumbing.com/",
-              "Documentation": "https://sharp.pixelplumbing.com/api-operation#grayscale",
-              "Sharp Github": "https://github.com/lovell/sharp",
-              "Support Sharp": "https://opencollective.com/libvips"
-            }
-          }
-        },
-        inputs:
-        {
-          "images":
-          {
-            "type": "object",
-            "x-type": "imageArray",
-            "title": "Image",
-            "description": "The image(s) to grayscale",
-            "required": true,
-            "control":
-            {
-              "type": "AlpineLabelComponent"
-            }
-          }
-        }
-      }
-    },
-    functions: {
-      _exec: async (payload, ctx) =>
-      {
-
-        if (payload.images)
-        {
-          // get buffer
-          let images = await Promise.all(payload.images.map((image: any) =>{
-            return ctx.app.cdn.get(image.ticket)
-          }))
-
-
-          let results = await Promise.all(images.map(async (image: any) =>
-          {
-            let { left, top, width, height } = payload
+            const { left, top, width, height } = payload
 
             image.data = await sharp(image.data).extract({left,top, width, height}).toBuffer()
             image.meta.width = width
