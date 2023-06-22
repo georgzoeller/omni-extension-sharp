@@ -366,7 +366,7 @@ var SharpGrayscaleComponent = {
         "type": "object",
         required: [],
         "properties": {
-          "Grayscale": {
+          "grayscale": {
             "title": "Grayscale",
             "type": "boolean",
             "default": true,
@@ -431,11 +431,17 @@ var SharpGrayscaleComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp(image.data).grayscale(payload.grayscale).toBuffer();
-          return image;
+          if (payload.grayscale) {
+            image.data = await sharp(image.data).grayscale(true).toBuffer();
+            return image;
+          }
         }));
         results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, { grayscale: payload.grayscale }));
+          if (payload.grayscale) {
+            return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, { grayscale: payload.grayscale }));
+          } else {
+            return image;
+          }
         }));
         payload.images = results;
       }

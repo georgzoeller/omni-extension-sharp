@@ -460,7 +460,7 @@ const SharpRotationComponent =
           "type": "object",
           required:[],
           "properties": {
-            "Grayscale": {
+            "grayscale": {
               "title": "Grayscale",
               "type": "boolean",
               "default": true,
@@ -538,17 +538,30 @@ const SharpRotationComponent =
           }))
 
 
+
           let results = await Promise.all(images.map(async (image: any) =>
           {
 
-            image.data = await sharp(image.data).grayscale(payload.grayscale).toBuffer()
-            return image
+            if (payload.grayscale)
+            {
+              image.data = await sharp(image.data).grayscale(true).toBuffer()
+              return image
+            }
           }))
+
 
           // write new record
           results = await Promise.all(results.map((image: any) =>
           {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {grayscale: payload.grayscale}))
+            if (payload.grayscale)
+            {
+              return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {grayscale: payload.grayscale}))
+            }
+            else
+            {
+              return image
+            }
+
           }))
 
           payload.images = results
