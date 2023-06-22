@@ -131,6 +131,7 @@ var SharpBlurComponent = {
             "title": "Sigma",
             "type": "number",
             "default": 0,
+            "minimum": 0,
             "maximum": 1e3,
             "description": `Blur the image.
               When used without parameters, performs a fast 3x3 box blur (equivalent to a box linear filter).
@@ -187,7 +188,8 @@ var SharpBlurComponent = {
           }
         },
         "sigma": {
-          minimum: 3e3,
+          minimum: 0,
+          maximum: 3e3,
           default: 0,
           description: "The sigma value for Gaussian BLur, 0 for fast blur, 0.3-1000 for Gaussian Blur Sigma",
           control: {
