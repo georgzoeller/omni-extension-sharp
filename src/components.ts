@@ -382,6 +382,28 @@ const SharpRotationComponent =
             {
               "type": "AlpineLabelComponent"
             }
+          },
+          "red":
+          {
+            step: 1,
+            control: {
+              "type": "AlpineNumWithSliderComponent"
+            }
+          },
+          "green":
+          {
+            step: 1,
+            control: {
+              "type": "AlpineNumWithSliderComponent"
+            }
+          }
+          ,
+          "blue":
+          {
+            step: 1,
+            control: {
+              "type": "AlpineNumWithSliderComponent"
+            }
           }
 
         }
