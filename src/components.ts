@@ -562,6 +562,7 @@ const SharpRotationComponent =
             }
             else
             {
+              delete image.data
               return image
             }
 

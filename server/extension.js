@@ -440,6 +440,7 @@ var SharpGrayscaleComponent = {
           if (payload.grayscale) {
             return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, { grayscale: payload.grayscale }));
           } else {
+            delete image.data;
             return image;
           }
         }));
