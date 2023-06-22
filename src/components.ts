@@ -694,7 +694,7 @@ const SharpRotationComponent =
     }
   }
 
-let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent]
+let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent]
 
 
 export default (FactoryFn: any) =>

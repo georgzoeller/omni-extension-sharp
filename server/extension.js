@@ -443,7 +443,118 @@ var SharpGrayscaleComponent = {
     }
   }
 };
-var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent];
+var SharpExtractComponent = {
+  schema: {
+    "tags": ["default"],
+    "componentKey": "extract",
+    "operation": {
+      "schema": {
+        "title": "Extract Image",
+        "type": "object",
+        required: [],
+        "properties": {
+          "left": {
+            "title": "Left",
+            "type": "number",
+            "default": 0,
+            "minimum": 0
+          },
+          "top": {
+            "title": "Top",
+            "type": "number",
+            "default": 0,
+            "minimum": 0
+          },
+          "width": {
+            "title": "Width",
+            "type": "number",
+            "default": 512,
+            "minimum": 0
+          },
+          "height": {
+            "title": "height",
+            "type": "number",
+            "default": 512,
+            "minimum": 0
+          }
+        }
+      },
+      "responseTypes": {
+        "200": {
+          "schema": {
+            "required": [
+              "images"
+            ],
+            "type": "string",
+            "properties": {
+              "images": {
+                "title": "Images",
+                "type": "object",
+                "x-type": "imageArray",
+                "description": "The processed images"
+              }
+            }
+          },
+          "contentType": "application/json"
+        }
+      },
+      "method": "X-CUSTOM"
+    },
+    patch: {
+      "title": "Extract Image Region (Sharp)",
+      "category": "Image Manipulation",
+      "summary": "Extracts/Crops an image region",
+      "meta": {
+        "source": {
+          "summary": `Extract/crop a region of the image.
+            Use extract before resize for pre-resize extraction.
+            Use extract after resize for post-resize extraction.
+            Use extract before and after for both.`,
+          links: {
+            "Sharp Website": "https://sharp.pixelplumbing.com/",
+            "Documentation": "https://sharp.pixelplumbing.com/api-operation#extract",
+            "Sharp Github": "https://github.com/lovell/sharp",
+            "Support Sharp": "https://opencollective.com/libvips"
+          }
+        }
+      },
+      inputs: {
+        "images": {
+          "type": "object",
+          "x-type": "imageArray",
+          "title": "Image",
+          "description": "The image(s) to extract from",
+          "required": true,
+          "control": {
+            "type": "AlpineLabelComponent"
+          }
+        }
+      }
+    }
+  },
+  functions: {
+    _exec: async (payload, ctx) => {
+      if (payload.images) {
+        let images = await Promise.all(payload.images.map((image) => {
+          return ctx.app.cdn.get(image.ticket);
+        }));
+        let results = await Promise.all(images.map(async (image) => {
+          const { left, top, width, height } = payload;
+          image.data = await sharp(image.data).extract({ left, top, width, height }).toBuffer();
+          image.meta.width = width;
+          image.meta.height = height;
+          return image;
+        }));
+        results = await Promise.all(results.map((image) => {
+          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
+        }));
+        payload.images = results;
+      }
+      return payload;
+    }
+  }
+};
+var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent];
 var components_default = (FactoryFn) => {
   return components.map((c) => FactoryFn(c.schema, c.functions));
 };
