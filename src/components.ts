@@ -694,6 +694,109 @@ const SharpRotationComponent =
     }
   }
 
+  const SharpMetaDataComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "metadata",
+      "operation": {
+
+        "schema": {
+          "title": "Get Image Metadata",
+          "type": "object",
+          required:[],
+          "properties": {
+
+          }
+
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+
+              "required": [
+                "metadata"
+              ],
+              "type": "string",
+              "properties": {
+                "metadata": {
+                  "title": "Metadata",
+                  "type": "object",
+                  "x-type": "objectArray",
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Get Image Metadata (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Returns the metadata of an image",
+        "meta":
+        {
+          "source":
+          {
+            "summary": `Fast access to (uncached) image metadata without decoding any compressed pixel data.
+
+            This is read from the header of the input image. It does not take into consideration any operations to be applied to the output image, such as resize or rotate..`,
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-input#metadata",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to inspect",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          }
+        }
+      }
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images)
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+            return await sharp(image.data).metadata();
+          }))
+
+          // write new record
+
+          payload.metadata = results
+        }
+
+        return payload
+      }
+    }
+  }
+
 let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent]
 
 
