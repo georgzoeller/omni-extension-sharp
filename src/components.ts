@@ -422,13 +422,7 @@ const SharpRotationComponent =
 
           let results = await Promise.all(images.map(async (image: any) =>
           {
-            let buffer = image.data
-            let sharpImage = sharp(buffer)
-
-            sharpImage.tint({r:payload.red,g:payload.green,b:payload.blue})
-
-            let result = await sharpImage.toBuffer()
-            image.data = result
+            image.data = await sharp(image.data).tint({r:payload.red,g:payload.green,b:payload.blue}).toBuffer()
             return image
           }))
 
