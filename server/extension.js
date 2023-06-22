@@ -356,7 +356,94 @@ var SharpTintComponent = {
     }
   }
 };
-var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent];
+var SharpGrayscaleComponent = {
+  schema: {
+    "tags": ["default"],
+    "componentKey": "grayscale",
+    "operation": {
+      "schema": {
+        "title": "Grayscale Image",
+        "type": "object",
+        required: [],
+        "properties": {
+          "Grayscale": {
+            "title": "",
+            "type": "boolean",
+            "default": true,
+            "description": `Grayscale the Image`
+          }
+        }
+      },
+      "responseTypes": {
+        "200": {
+          "schema": {
+            "required": [
+              "images"
+            ],
+            "type": "string",
+            "properties": {
+              "images": {
+                "title": "Images",
+                "type": "object",
+                "x-type": "imageArray",
+                "description": "The tinted images"
+              }
+            }
+          },
+          "contentType": "application/json"
+        }
+      },
+      "method": "X-CUSTOM"
+    },
+    patch: {
+      "title": "Grayscale Image (Sharp)",
+      "category": "Image Manipulation",
+      "summary": "Convert an image to 8-bit, 256 color grayscale",
+      "meta": {
+        "source": {
+          "summary": "Convert to 8-bit greyscale; 256 shades of grey. This is a linear operation. If the input image is in a non-linear colour space such as sRGB, use gamma() with greyscale() for the best results. By default the output image will be web-friendly sRGB and contain three (identical) color channels. This may be overridden by other sharp operations such as toColourspace('b-w'), which will produce an output image containing one color channel. An alpha channel may be present, and will be unchanged by the operation.",
+          links: {
+            "Sharp Website": "https://sharp.pixelplumbing.com/",
+            "Documentation": "https://sharp.pixelplumbing.com/api-operation#grayscale",
+            "Sharp Github": "https://github.com/lovell/sharp",
+            "Support Sharp": "https://opencollective.com/libvips"
+          }
+        }
+      },
+      inputs: {
+        "images": {
+          "type": "object",
+          "x-type": "imageArray",
+          "title": "Image",
+          "description": "The image(s) to grayscale",
+          "required": true,
+          "control": {
+            "type": "AlpineLabelComponent"
+          }
+        }
+      }
+    }
+  },
+  functions: {
+    _exec: async (payload, ctx) => {
+      if (payload.images) {
+        let images = await Promise.all(payload.images.map((image) => {
+          return ctx.app.cdn.get(image.ticket);
+        }));
+        let results = await Promise.all(images.map(async (image) => {
+          image.data = await sharp(image.data).grayscale(payload.grayscale).toBuffer();
+          return image;
+        }));
+        results = await Promise.all(results.map((image) => {
+          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, { grayscale: payload.grayscale }));
+        }));
+        payload.images = results;
+      }
+      return payload;
+    }
+  }
+};
+var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent];
 var components_default = (FactoryFn) => {
   return components.map((c) => FactoryFn(c.schema, c.functions));
 };
