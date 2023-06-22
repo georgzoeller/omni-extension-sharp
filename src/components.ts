@@ -419,14 +419,15 @@ const SharpRotationComponent =
           let images = await Promise.all(payload.images.map((image: any) =>{
             return ctx.app.cdn.get(image.ticket)
           }))
+          const tint = {
+            r: parseInt(payload.red),
+            g: parseInt(payload.green),
+            b: parseInt(payload.blue)
+          }
 
           let results = await Promise.all(images.map(async (image: any) =>
           {
-            const tint = {
-              r: parseInt(payload.red),
-              g: parseInt(payload.green),
-              b: parseInt(payload.blue)
-            }
+
             image.data = await sharp(image.data).tint(tint).toBuffer()
             return image
           }))
@@ -434,7 +435,7 @@ const SharpRotationComponent =
           // write new record
           results = await Promise.all(results.map((image: any) =>
           {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {tint: tint}))
           }))
 
           payload.images = results

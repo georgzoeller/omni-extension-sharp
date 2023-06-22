@@ -338,17 +338,17 @@ var SharpTintComponent = {
         let images = await Promise.all(payload.images.map((image) => {
           return ctx.app.cdn.get(image.ticket);
         }));
+        const tint = {
+          r: parseInt(payload.red),
+          g: parseInt(payload.green),
+          b: parseInt(payload.blue)
+        };
         let results = await Promise.all(images.map(async (image) => {
-          const tint = {
-            r: parseInt(payload.red),
-            g: parseInt(payload.green),
-            b: parseInt(payload.blue)
-          };
           image.data = await sharp(image.data).tint(tint).toBuffer();
           return image;
         }));
         results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
+          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, { tint }));
         }));
         payload.images = results;
       }
