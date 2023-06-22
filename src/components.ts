@@ -5,13 +5,10 @@ const SharpRotationComponent =
   {
     schema:
     {
-      "namespace": "omni-extension-sharp",
       "tags": ['default'],
-
       "componentKey": "rotate",
-      "apiKey": "rotate",
       "operation": {
-        "operationId": "rotate",
+
         "schema": {
           "title": "Rotate",
           "type": "object",
@@ -33,7 +30,7 @@ const SharpRotationComponent =
             "schema": {
               "title": "Text",
               "required": [
-                "text"
+                "images"
               ],
               "type": "string",
               "properties": {
