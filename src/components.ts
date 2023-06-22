@@ -798,7 +798,109 @@ const SharpRotationComponent =
     }
   }
 
-let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent]
+  const SharpStatsComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "stats",
+      "operation": {
+
+        "schema": {
+          "title": "Get Image Statistics",
+          "type": "object",
+          required:[],
+          "properties": {
+
+          }
+
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+
+              "required": [
+                "stats"
+              ],
+              "type": "string",
+              "properties": {
+                "stats": {
+                  "title": "Stats",
+                  "type": "object",
+                  "x-type": "objectArray",
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Get Image Stats (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Access to pixel-derived image statistics for every channel in the image",
+        "meta":
+        {
+          "source":
+          {
+            "summary": `Access to pixel-derived image statistics for every channel in the image`,
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-input#stats",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to inspect",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          }
+        }
+      }
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images)
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+            let md = await sharp(image.data).stats();
+            return md
+          }))
+
+          // write new record
+
+          payload.stats = results
+        }
+
+        return payload
+      }
+    }
+  }
+
+let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent]
 
 
 export default (FactoryFn: any) =>
