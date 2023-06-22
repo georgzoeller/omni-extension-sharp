@@ -228,7 +228,116 @@ var SharpBlurComponent = {
     }
   }
 };
-var components = [SharpRotationComponent, SharpBlurComponent];
+var SharpTintComponent = {
+  schema: {
+    "tags": ["default"],
+    "componentKey": "tint",
+    "operation": {
+      "schema": {
+        "title": "Tint Image",
+        "type": "object",
+        required: [],
+        "properties": {
+          "red": {
+            "title": "Red",
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 255,
+            "description": `Tint the red channel.`
+          },
+          "green": {
+            "title": "Green",
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 255,
+            "description": `Tint the green channel.`
+          },
+          "blue": {
+            "title": "Blue",
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 255,
+            "description": `Tint the blue channel.`
+          }
+        }
+      },
+      "responseTypes": {
+        "200": {
+          "schema": {
+            "required": [
+              "images"
+            ],
+            "type": "string",
+            "properties": {
+              "images": {
+                "title": "Images",
+                "type": "object",
+                "x-type": "imageArray",
+                "description": "The tinted images"
+              }
+            }
+          },
+          "contentType": "application/json"
+        }
+      },
+      "method": "X-CUSTOM"
+    },
+    patch: {
+      "title": "Tint Image (Sharp)",
+      "category": "Image Manipulation",
+      "summary": "Tints an image",
+      "meta": {
+        "source": {
+          "summary": "Tints an image via provided RGB values",
+          links: {
+            "Sharp Website": "https://sharp.pixelplumbing.com/",
+            "Documentation": "https://sharp.pixelplumbing.com/api-operation#tint",
+            "Sharp Github": "https://github.com/lovell/sharp",
+            "Support Sharp": "https://opencollective.com/libvips"
+          }
+        }
+      },
+      inputs: {
+        "images": {
+          "type": "object",
+          "x-type": "imageArray",
+          "title": "Image",
+          "description": "The image(s) to blur",
+          "required": true,
+          "control": {
+            "type": "AlpineLabelComponent"
+          }
+        }
+      }
+    }
+  },
+  functions: {
+    _exec: async (payload, ctx) => {
+      if (payload.images) {
+        let images = await Promise.all(payload.images.map((image) => {
+          return ctx.app.cdn.get(image.ticket);
+        }));
+        let results = await Promise.all(images.map(async (image) => {
+          let buffer = image.data;
+          let sharpImage = sharp(buffer);
+          sharpImage.tint({ r: payload.red, g: payload.green, b: payload.blue });
+          let result = await sharpImage.toBuffer();
+          image.data = result;
+          return image;
+        }));
+        results = await Promise.all(results.map((image) => {
+          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
+        }));
+        payload.images = results;
+      }
+      return payload;
+    }
+  }
+};
+var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent];
 var components_default = (FactoryFn) => {
   return components.map((c) => FactoryFn(c.schema, c.functions));
 };
