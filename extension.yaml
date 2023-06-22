@@ -1,0 +1,9 @@
+title: My Extension
+version: 0.0.1
+description: No Description Yet
+author: Anonymous
+origin: <add your github/gitlab repository here>
+dependencies:
+  sharp: sharp
+client:
+  addToWorkbench: true
