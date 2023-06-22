@@ -460,10 +460,142 @@ const SharpRotationComponent =
           "type": "object",
           required:[],
           "properties": {
+            "left": {
+              "title": "Left",
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+            },
+            "top": {
+              "title": "Top",
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+            },
+            "width": {
+              "title": "Width",
+              "type": "number",
+              "default": 512,
+              "minimum": 0,
+            },
+            "height": {
+              "title": "height",
+              "type": "number",
+              "default": 512,
+              "minimum": 0,
+            }
+          },
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+
+              "required": [
+                "images"
+              ],
+              "type": "string",
+              "properties": {
+                "images": {
+                  "title": "Images",
+                  "type": "object",
+                  "x-type": "imageArray",
+                  "description": "The processed images"
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Extract Image Region (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Extracts/Crops an image region",
+        "meta":
+        {
+          "source":
+          {
+            "summary": `Extract/crop a region of the image.
+            Use extract before resize for pre-resize extraction.
+            Use extract after resize for post-resize extraction.
+            Use extract before and after for both.`,
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-operation#extract",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to extract from",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          }
+        }
+      }
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images)
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+
+            image.data = await sharp(image.data).grayscale(payload.grayscale).toBuffer()
+            return image
+          }))
+
+          // write new record
+          results = await Promise.all(results.map((image: any) =>
+          {
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {grayscale: payload.grayscale}))
+          }))
+
+          payload.images = results
+        }
+
+        return payload
+      }
+    }
+  }
+  const SharpExtractComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "extract",
+      "operation": {
+
+        "schema": {
+          "title": "Extract Image Region",
+          "type": "object",
+          required:[],
+          "properties": {
             "Grayscale": {
-              "title": "Grayscale",
-              "type": "boolean",
-              "default": true,
+              "title": "Options",
+              "type": "object",
+              "default": {left: 0, right: 0, top: 512, bottom: 512},
               "description": `Grayscale the Image`
             }
           },
@@ -492,7 +624,7 @@ const SharpRotationComponent =
       },
       patch:
       {
-        "title": "Grayscale Image (Sharp)",
+        "title": "Extract Image Region (Sharp)",
         "category": "Image Manipulation",
         "summary": "Convert an image to 8-bit, 256 color grayscale",
         "meta":
@@ -540,15 +672,18 @@ const SharpRotationComponent =
 
           let results = await Promise.all(images.map(async (image: any) =>
           {
+            let { left, top, width, height } = payload
 
-            image.data = await sharp(image.data).grayscale(payload.grayscale).toBuffer()
+            image.data = await sharp(image.data).extract({left,top, width, height}).toBuffer()
+            image.meta.width = width
+            image.meta.height = height
             return image
           }))
 
           // write new record
           results = await Promise.all(results.map((image: any) =>
           {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {grayscale: payload.grayscale}))
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
           }))
 
           payload.images = results
@@ -558,7 +693,6 @@ const SharpRotationComponent =
       }
     }
   }
-
 
 let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent]
 
