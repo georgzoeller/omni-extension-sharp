@@ -1,9 +1,9 @@
-title: My Extension
+title: Sharp Image Processing Extension
 version: 0.0.1
-description: No Description Yet
-author: Anonymous
-origin: <add your github/gitlab repository here>
+description: Omnitool extensions wrapping the excellent lovell/sharp image processing library.
+author: Georg Zoeller
+origin: https://github.com/georgzoeller/omni-extension-sharp.git
 dependencies:
   sharp: sharp
 client:
-  addToWorkbench: true
+  addToWorkbench: false
