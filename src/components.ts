@@ -253,11 +253,6 @@ const SharpRotationComponent =
 
 
 
-          if (sigma == 0)
-          {
-            sigma = undefined
-          }
-
           let results = await Promise.all(images.map(async (image: any) =>
           {
             let buffer = image.data
