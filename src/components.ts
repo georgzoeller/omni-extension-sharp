@@ -127,7 +127,7 @@ const SharpRotationComponent =
             let sharpImage = sharp(buffer)
             sharpImage.rotate(angle, { background: background })
             let result = await sharpImage.toBuffer()
-            image.data = result.toString('base64')
+            image.data = result
             return image
           }))
 
@@ -146,7 +146,142 @@ const SharpRotationComponent =
   }
 
 
-let components = [SharpRotationComponent]
+  const SharpBlurComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "blur",
+      "operation": {
+
+        "schema": {
+          "title": "Blur",
+          "type": "object",
+          required:[],
+          "properties": {
+            "sigma": {
+              "title": "Sigma",
+              "type": "number",
+              "default": undefined,
+              "description": `Blur the image.
+              When used without parameters, performs a fast 3x3 box blur (equivalent to a box linear filter).
+              When a sigma is provided, performs a slower, more accurate Gaussian blur.r`
+            }
+          },
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+              "title": "Text",
+              "required": [
+                "images"
+              ],
+              "type": "string",
+              "properties": {
+                "images": {
+                  "title": "Images",
+                  "type": "object",
+                  "x-type": "imageArray",
+                  "description": "The blurred images"
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Blur Image (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Blurs an image",
+        "meta":
+        {
+          "source":
+          {
+            "summary": "Blurs an image, optionally using a sigmal value via Gaussian Blur",
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-operation#blur",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to blur",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          },
+          "sigma":
+          {
+            maximum: 0.3,
+            minimum: 3000,
+            default: undefined,
+            description: "The sigma value for Gaussian BLur, 0 for fast blur, 0.3-1000 for Gaussian Blur Sigma",
+            control:
+            {
+              "type": "AlpineNumComponent"
+            }
+          }
+        }
+      }
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images)
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+
+          let sigma= payload.sigma
+
+          if (sigma == 0)
+          {
+            sigma = undefined
+          }
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+            let buffer = image.data
+            let sharpImage = sharp(buffer)
+            sharpImage.blur(sigma)
+            let result = await sharpImage.toBuffer()
+            image.data = result
+            return image
+          }))
+
+          // write new record
+          results = await Promise.all(results.map((image: any) =>
+          {
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {blur: sigma||true}))
+          }))
+
+          payload.images = results
+        }
+
+        return payload
+      }
+    }
+  }
+
+let components = [SharpRotationComponent, SharpBlurComponent]
 
 
 export default (FactoryFn: any) =>
