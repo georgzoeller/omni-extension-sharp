@@ -251,7 +251,7 @@ const SharpRotationComponent =
           }))
 
 
-          let sigma= payload.sigma
+
 
           if (sigma == 0)
           {
@@ -262,7 +262,16 @@ const SharpRotationComponent =
           {
             let buffer = image.data
             let sharpImage = sharp(buffer)
-            sharpImage.blur(sigma)
+            if (payload.sigma == 0)
+            {
+              sharpImage.blur()
+            }
+            if (payload.sigma > 0 )
+            {
+              let sigma= Math.max(0.3,Math.min(1000,payload.sigma))
+              sharpImage.blur(sigma)
+            }
+
             let result = await sharpImage.toBuffer()
             image.data = result
             return image
@@ -271,7 +280,7 @@ const SharpRotationComponent =
           // write new record
           results = await Promise.all(results.map((image: any) =>
           {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {blur: sigma||true}))
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
           }))
 
           payload.images = results
