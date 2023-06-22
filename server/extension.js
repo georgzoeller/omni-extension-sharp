@@ -623,7 +623,10 @@ var SharpMetaDataComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          return await sharp(image.data).metadata();
+          let md = await sharp(image.data).metadata();
+          console.log("md", md);
+          console.log(md.width, md.height, md.format);
+          return md;
         }));
         payload.metadata = results;
       }
