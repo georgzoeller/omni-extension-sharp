@@ -433,8 +433,8 @@ var SharpGrayscaleComponent = {
         let results = await Promise.all(images.map(async (image) => {
           if (payload.grayscale) {
             image.data = await sharp(image.data).grayscale(true).toBuffer();
-            return image;
           }
+          return image;
         }));
         results = await Promise.all(results.map((image) => {
           if (payload.grayscale) {

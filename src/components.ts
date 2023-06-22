@@ -545,8 +545,11 @@ const SharpRotationComponent =
             if (payload.grayscale)
             {
               image.data = await sharp(image.data).grayscale(true).toBuffer()
-              return image
             }
+
+            return image
+
+
           }))
 
 
