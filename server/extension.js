@@ -624,9 +624,7 @@ var SharpMetaDataComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           let md = await sharp(image.data).metadata();
-          console.log("md", md);
-          console.log(md.width, md.height, md.format);
-          return md;
+          return Object.assign({}, image.meta, md || {});
         }));
         payload.metadata = results;
       }

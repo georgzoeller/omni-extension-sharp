@@ -785,9 +785,7 @@ const SharpRotationComponent =
           let results = await Promise.all(images.map(async (image: any) =>
           {
             let md = await sharp(image.data).metadata();
-            console.log("md", md)
-            console.log(md.width, md.height, md.format)
-            return md
+            return Object.assign({}, image.meta, md || {})
           }))
 
           // write new record
