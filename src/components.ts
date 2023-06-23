@@ -879,21 +879,21 @@ const SharpRotationComponent =
           "properties": {
             "brightness": {
               "title": "Brightness",
-              "type": "integer",
-              "default": 0,
+              "type": "float",
+              "default": 1,
               "minimum": 0,
               "description": "The brightness multiplier."
             },
             "saturation": {
               "title": "Saturation",
-              "type": "integer",
-              "default": 0,
+              "type": "float",
+              "default": 1,
               "minimum": 0,
               "description": "The saturation multiplier."
             },
             "hue": {
               "title": "Hue Rotation",
-              "type": "integer",
+              "type": "float",
               "default": 0,
               "minimum": -360,
               "maximum": 360,
@@ -901,7 +901,7 @@ const SharpRotationComponent =
             },
             "lightness": {
               "title": "Lightness",
-              "type": "integer",
+              "type": "float",
               "default": 0,
               "minimum": 0,
               "description": "The lightness addend."
