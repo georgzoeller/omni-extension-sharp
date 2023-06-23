@@ -989,9 +989,15 @@ const SharpRotationComponent =
 
           let results = await Promise.all(images.map(async (image: any) =>
           {
-            const { brightness, lightness, hue, saturation} = payload
+            const args = { ...payload }
 
-            image.data = await sharp(image.data).modulate({brightness, lightness, hue, saturation}).toBuffer()
+            if (args.hue == 0)
+            {
+              delete args.hue
+            }
+
+
+            image.data = await sharp(image.data).modulate(args).toBuffer()
             return image
           }))
 

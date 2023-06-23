@@ -790,8 +790,11 @@ var SharpModulateComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          const { brightness, lightness, hue, saturation } = payload;
-          image.data = await sharp(image.data).modulate({ brightness, lightness, hue, saturation }).toBuffer();
+          const args = { ...payload };
+          if (args.hue == 0) {
+            delete args.hue;
+          }
+          image.data = await sharp(image.data).modulate(args).toBuffer();
           return image;
         }));
         results = await Promise.all(results.map((image) => {
