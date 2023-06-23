@@ -806,6 +806,94 @@ var SharpModulateComponent = {
     }
   }
 };
+var SharpExtractChannelComponent = {
+  schema: {
+    "tags": ["default"],
+    "componentKey": "extractChannel",
+    "operation": {
+      "schema": {
+        "title": "Extract Channel",
+        "type": "object",
+        required: [],
+        "properties": {
+          "channel": {
+            "title": "Channel",
+            "type": "string",
+            "enum": ["red", "green", "blue", "alpha"],
+            "default": "red",
+            "description": "The channel to extract."
+          }
+        }
+      },
+      "responseTypes": {
+        "200": {
+          "schema": {
+            "required": [
+              "images"
+            ],
+            "type": "string",
+            "properties": {
+              "images": {
+                "title": "Images",
+                "type": "object",
+                "x-type": "imageArray",
+                "description": "The processed images"
+              }
+            }
+          },
+          "contentType": "application/json"
+        }
+      },
+      "method": "X-CUSTOM"
+    },
+    patch: {
+      "title": "Extract Channel (Sharp)",
+      "category": "Image Manipulation",
+      "summary": "Extract channels from a multi-channel image.",
+      "meta": {
+        "source": {
+          "summary": `Extract channel from a multi-channel image.`,
+          links: {
+            "Sharp Website": "https://sharp.pixelplumbing.com/",
+            "Documentation": "https://sharp.pixelplumbing.com/api-channel#extractchannel",
+            "Sharp Github": "https://github.com/lovell/sharp",
+            "Support Sharp": "https://opencollective.com/libvips"
+          }
+        }
+      },
+      inputs: {
+        "images": {
+          "type": "object",
+          "x-type": "imageArray",
+          "title": "Image",
+          "description": "The image(s) to operate on",
+          "required": true,
+          "control": {
+            "type": "AlpineLabelComponent"
+          }
+        }
+      }
+    }
+  },
+  functions: {
+    _exec: async (payload, ctx) => {
+      if (payload.images) {
+        let images = await Promise.all(payload.images.map((image) => {
+          return ctx.app.cdn.get(image.ticket);
+        }));
+        let results = await Promise.all(images.map(async (image) => {
+          image.data = await sharp(image.data).extractChannel(payload.channel).toBuffer();
+          return image;
+        }));
+        results = await Promise.all(results.map((image) => {
+          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
+        }));
+        payload.images = results;
+      }
+      return { images: payload.images };
+    }
+  }
+};
 var SharpMetaDataComponent = {
   schema: {
     "tags": ["default"],
@@ -960,7 +1048,7 @@ var SharpStatsComponent = {
     }
   }
 };
-var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent];
+var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent];
 var components_default = (FactoryFn) => {
   return components.map((c) => FactoryFn(c.schema, c.functions));
 };
