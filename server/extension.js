@@ -672,7 +672,7 @@ var SharpExtendComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           const { left, right, top, bottom, extendWith, background } = payload;
-          image.data = await sharp(image.data).extend({ left, right, top, bottom, extendWith }).toBuffer();
+          image.data = await sharp(image.data).extend({ left, right, top, bottom, extendWith, background }).toBuffer();
           image.meta.width += left + right;
           image.meta.height += top + bottom;
           return image;
@@ -683,6 +683,123 @@ var SharpExtendComponent = {
         payload.images = results;
       }
       return payload;
+    }
+  }
+};
+var SharpModulateComponent = {
+  schema: {
+    "tags": ["default"],
+    "componentKey": "modulate",
+    "operation": {
+      "schema": {
+        "title": "Modulate Image",
+        "type": "object",
+        required: [],
+        "properties": {
+          "brightness": {
+            "title": "Brightness",
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "description": "The brightness multiplier."
+          },
+          "saturation": {
+            "title": "Saturation",
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "description": "The saturation multiplier."
+          },
+          "hue": {
+            "title": "Hue Rotation",
+            "type": "integer",
+            "default": 0,
+            "minimum": -360,
+            "maximum": 360,
+            "description": "The hue rotation in degrees."
+          },
+          "lightness": {
+            "title": "Lightness",
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "description": "The lightness addend."
+          }
+        }
+      },
+      "responseTypes": {
+        "200": {
+          "schema": {
+            "required": [
+              "images"
+            ],
+            "type": "string",
+            "properties": {
+              "images": {
+                "title": "Images",
+                "type": "object",
+                "x-type": "imageArray",
+                "description": "The processed images"
+              }
+            }
+          },
+          "contentType": "application/json"
+        }
+      },
+      "method": "X-CUSTOM"
+    },
+    patch: {
+      "title": "Modulate Image (Sharp)",
+      "category": "Image Manipulation",
+      "summary": "Transforms the image using brightness, saturation, hue rotation, and lightness",
+      "meta": {
+        "source": {
+          "summary": `Transforms the image using brightness, saturation, hue rotation, and lightness. Brightness and lightness both operate on luminance, with the difference being that brightness is multiplicative whereas lightness is additive.`,
+          links: {
+            "Sharp Website": "https://sharp.pixelplumbing.com/",
+            "Documentation": "https://sharp.pixelplumbing.com/api-operation#modulate",
+            "Sharp Github": "https://github.com/lovell/sharp",
+            "Support Sharp": "https://opencollective.com/libvips"
+          }
+        }
+      },
+      inputs: {
+        "images": {
+          "type": "object",
+          "x-type": "imageArray",
+          "title": "Image",
+          "description": "The image(s) to extend",
+          "required": true,
+          "control": {
+            "type": "AlpineLabelComponent"
+          }
+        },
+        "hue": {
+          "step": 1,
+          "control": {
+            "type": "AlpineNumWithSliderComponent"
+          }
+        }
+      }
+    }
+  },
+  functions: {
+    _exec: async (payload, ctx) => {
+      if (payload.images) {
+        let images = await Promise.all(payload.images.map((image) => {
+          return ctx.app.cdn.get(image.ticket);
+        }));
+        let results = await Promise.all(images.map(async (image) => {
+          const { brightness, lightness, hue, saturation } = payload;
+          image.data = await sharp(image.data).modulate({ brightness, lightness, hue, saturation }).toBuffer();
+          return image;
+        }));
+        results = await Promise.all(results.map((image) => {
+          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
+        }));
+        payload.images = results;
+      }
+      return { images: payload.images };
     }
   }
 };
@@ -840,7 +957,7 @@ var SharpStatsComponent = {
     }
   }
 };
-var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent];
+var components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent];
 var components_default = (FactoryFn) => {
   return components.map((c) => FactoryFn(c.schema, c.functions));
 };
