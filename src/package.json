@@ -5,11 +5,10 @@
     "build": "esbuild --bundle ./extension.ts --outdir=../server  --format=esm --analyze --color=true --target=es2020 --platform=node --external:sharp"
   },
   "dependencies": {
-    "mlly": "^1.4.0",
     "sharp": "^0.32.1"
   },
   "devDependencies": {
-    "@hyrious/esbuild-plugin-commonjs": "^0.2.2",
+
     "esbuild": "^0.18.4",
     "typescript": "^5.1.3"
   }
