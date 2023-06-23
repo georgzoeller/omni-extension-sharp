@@ -711,6 +711,158 @@ const SharpRotationComponent =
     }
   }
 
+  const SharpExtendComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "extend",
+      "operation": {
+
+        "schema": {
+          "title": "Extend Image",
+          "type": "object",
+          required:[],
+          "properties": {
+            "left": {
+              "title": "Left",
+              "type": "integer",
+              "default": 0,
+              "minimum": 0,
+            },
+            "top": {
+              "title": "Top",
+              "type": "integer",
+              "default": 0,
+              "minimum": 0,
+            },
+            "bottom": {
+              "title": "Bottom",
+              "type": "integer",
+              "default": 0,
+              "minimum": 0,
+            },
+            "right": {
+              "title": "Right",
+              "type": "integer",
+              "default": 0,
+              "minimum": 0,
+            }
+          },
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+
+              "required": [
+                "images"
+              ],
+              "type": "string",
+              "properties": {
+                "images": {
+                  "title": "Images",
+                  "type": "object",
+                  "x-type": "imageArray",
+                  "description": "The processed images"
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Extend Image (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Extend / pad / extrude one or more edges of the image.",
+        "meta":
+        {
+          "source":
+          {
+            "summary": `Extend / pad / extrude one or more edges of the image with either the provided background colour or pixels derived from the image. This operation will always occur after resizing and extraction, if any.`,
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-resize#extend",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to extend",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          },
+          "extendWith":
+          {
+            "type": "string",
+            "title": "Method",
+            "description": "How to determine the color of the new pixels.",
+            "choices": ['background', 'copy', 'repeat', 'mirror'],
+            "default": "background"
+          },
+          "background":
+          {
+            "type": "string",
+            "x-type": "text",
+            "title": "Background",
+            "description": "The color of the new pixels if method 'background' was chosen.",
+            "control":
+            {
+              type: "AlpineColorComponent"
+            },
+            "default": "#000000"
+          }
+        }
+      }
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images)
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+            const { left, right, top, bottom, extendWith, background } = payload
+
+            image.data = await sharp(image.data).extend({left,right, top, bottom, extendWith}).toBuffer()
+            image.meta.width += left + right
+            image.meta.height += top + bottom
+            return image
+          }))
+
+          // write new record
+          results = await Promise.all(results.map((image: any) =>
+          {
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
+          }))
+
+          payload.images = results
+        }
+
+        return payload
+      }
+    }
+  }
   const SharpMetaDataComponent =
   {
     schema:
@@ -917,7 +1069,7 @@ const SharpRotationComponent =
     }
   }
 
-let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent]
+let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent]
 
 
 export default (FactoryFn: any) =>
