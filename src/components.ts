@@ -710,6 +710,155 @@ const SharpRotationComponent =
       }
     }
   }
+  const SharpTrimComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "trim",
+      "operation": {
+
+        "schema": {
+          "title": "Trim Image",
+          "type": "object",
+          required:[],
+          "properties": {
+            "trimMode": {
+              "title": "Trim Mode",
+              "type": "string",
+              "enum": ["Top left Pixel", "Background color"],
+              "default": "Top left Pixel",
+              "description": "Specify the mode for trimming: Top left pixel or Background color."
+            },
+            "background": {
+              "title": "Background",
+              "type": "string",
+              "default": "#000000",
+              "description": "Background colour to trim, used when trim mode is 'Background color'."
+            },
+            "threshold": {
+              "title": "Threshold",
+              "type": "number",
+              "default": 10,
+              "description": "The allowed difference from the above colour, a positive number."
+            }
+          },
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+
+              "required": [
+                "images"
+              ],
+              "type": "string",
+              "properties": {
+                "images": {
+                  "title": "Images",
+                  "type": "object",
+                  "x-type": "imageArray",
+                  "description": "The processed images"
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Trim Image (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Trim pixels from all edges that contain values similar to the given background colour.",
+        "meta":
+        {
+          "source":
+          {
+            "summary": `Trim pixels from all edges that contain values similar to the given background colour, which defaults to that of the top-left pixel. Images with an alpha channel will use the combined bounding box of alpha and non-alpha channels.`,
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-operation#trim",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to operate on",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          },
+          "trimMode":
+          {
+            "control":
+            {
+              "type": "AlpineSelectComponent"
+            }
+          },
+          "background":
+          {
+            "control":
+            {
+              "type": "AlpineColorComponent"
+            }
+          },
+          "threshold":
+          {
+            "step": 1,
+            "control":
+            {
+              "type": "AlpineNumWithSliderComponent"
+            }
+          },
+        }
+      },
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images)
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+            if (payload.trimMode === "Background color") {
+              image.data = await sharp(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer()
+            } else {
+              image.data = await sharp(image.data).trim(payload.threshold).toBuffer()
+            }
+
+            return image
+          }))
+
+          // write new record
+          results = await Promise.all(results.map((image: any) =>
+          {
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
+          }))
+
+          payload.images = results
+        }
+
+        return {images: payload.images}
+      }
+    }
+  }
 
   const SharpExtendComponent =
   {
@@ -1338,7 +1487,239 @@ const SharpRotationComponent =
     }
   }
 
-let components = [SharpRotationComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent]
+  const SharpRemoveAlphaComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "removeAlpha",
+      "operation": {
+
+        "schema": {
+          "title": "Remove Alpha",
+          "type": "object",
+          required:[],
+          "properties": {},
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+
+              "required": [
+                "images"
+              ],
+              "type": "string",
+              "properties": {
+                "images": {
+                  "title": "Images",
+                  "type": "object",
+                  "x-type": "imageArray",
+                  "description": "The processed images"
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Remove Alpha (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Remove alpha channel from an image, if any.",
+        "meta":
+        {
+          "source":
+          {
+            "summary": `Remove alpha channel from an image, if any. This is a no-op if the image does not have an alpha channel.`,
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-channel#removeAlpha",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to operate on",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          },
+
+        }
+      },
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images )
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+
+            image.data = await sharp(image.data).removeAlpha().toBuffer()
+            return image
+          }))
+
+          // write new record
+          results = await Promise.all(results.map((image: any) =>
+          {
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
+          }))
+
+          payload.images = results
+        }
+
+        return {images: payload.images}
+      }
+    }
+  }
+
+
+  const SharpEnsureAlphaComponent =
+  {
+    schema:
+    {
+      "tags": ['default'],
+      "componentKey": "ensureAlpha",
+      "operation": {
+
+        "schema": {
+          "title": "Ensure Alpha",
+          "type": "object",
+          required:[],
+          "properties": {
+            "alpha": {
+              "title": "Alpha",
+              "type": "number",
+              "default": 1,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Alpha transparency level (0=fully-transparent, 1=fully-opaque)."
+            }
+          },
+        },
+        "responseTypes": {
+          "200": {
+            "schema": {
+
+              "required": [
+                "images"
+              ],
+              "type": "string",
+              "properties": {
+                "images": {
+                  "title": "Images",
+                  "type": "object",
+                  "x-type": "imageArray",
+                  "description": "The processed images"
+                },
+              },
+            },
+            "contentType": "application/json"
+          },
+        },
+        "method": "X-CUSTOM"
+      },
+      patch:
+      {
+        "title": "Ensure Alpha (Sharp)",
+        "category": "Image Manipulation",
+        "summary": "Ensure the output image has an alpha transparency channel.",
+        "meta":
+        {
+          "source":
+          {
+            "summary": `Ensure the output image has an alpha transparency channel. If missing, the added alpha channel will have the specified transparency level, defaulting to fully-opaque (1). This is a no-op if the image already has an alpha channel.`,
+            links:
+            {
+              "Sharp Website": "https://sharp.pixelplumbing.com/",
+              "Documentation": "https://sharp.pixelplumbing.com/api-channel#ensureAlpha",
+              "Sharp Github": "https://github.com/lovell/sharp",
+              "Support Sharp": "https://opencollective.com/libvips"
+            }
+          }
+        },
+        inputs:
+        {
+          "images":
+          {
+            "type": "object",
+            "x-type": "imageArray",
+            "title": "Image",
+            "description": "The image(s) to operate on",
+            "required": true,
+            "control":
+            {
+              "type": "AlpineLabelComponent"
+            }
+          },
+          "alpha":
+          {
+            "step": 0.1,
+            "control":
+            {
+              "type": "AlpineNumWithSliderComponent"
+            }
+          },
+
+        }
+      },
+    },
+    functions: {
+      _exec: async (payload, ctx) =>
+      {
+
+        if (payload.images )
+        {
+          // get buffer
+          let images = await Promise.all(payload.images.map((image: any) =>{
+            return ctx.app.cdn.get(image.ticket)
+          }))
+
+
+          let results = await Promise.all(images.map(async (image: any) =>
+          {
+
+            image.data = await sharp(image.data).ensureAlpha(payload.alpha).toBuffer()
+            return image
+          }))
+
+          // write new record
+          results = await Promise.all(results.map((image: any) =>
+          {
+            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
+          }))
+
+          payload.images = results
+        }
+
+        return {images: payload.images}
+      }
+    }
+  }
+
+
+
+let components = [SharpRotationComponent, SharpTrimComponent,  SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent]
 
 
 export default (FactoryFn: any) =>
