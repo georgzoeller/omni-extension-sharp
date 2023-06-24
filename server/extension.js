@@ -1,5 +1,190 @@
 // components.ts
+import sharp3 from "sharp";
+
+// components/SharpResizeComponent.ts
+import sharp2 from "sharp";
+
+// util/updateMetaData.ts
 import sharp from "sharp";
+var updateMetaData = async (image) => {
+  if (image.data) {
+    let img = sharp(image.data);
+    let metadata = await img.metadata();
+    image.meta = { height: metadata.height, width: metadata.width, format: metadata.format, size: metadata.size, channels: metadata.channels };
+  }
+  return image;
+};
+var updateMetaData_default = updateMetaData;
+
+// util/writeToCdn.ts
+var writeToCdn = async (ctx, images, meta) => {
+  console.log("writeToCdn");
+  return Promise.all(images.map(async (image) => {
+    if (image.data != null) {
+      console.log("image", image.data);
+      await updateMetaData_default(image);
+      console.log("post-meta", image.data);
+      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, meta || {}));
+    } else {
+      console.log("no image data");
+      return image;
+    }
+  }));
+};
+var writeToCdn_default = writeToCdn;
+
+// components/SharpResizeComponent.ts
+var SharpResizeComponent = {
+  schema: {
+    "tags": ["default"],
+    "componentKey": "resize",
+    "operation": {
+      "schema": {
+        "title": "Resize Image",
+        "type": "object",
+        required: ["width", "height"],
+        "properties": {
+          "width": {
+            "title": "Width",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 8192
+          },
+          "height": {
+            "title": "Height",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 8192
+          },
+          "fit": {
+            "title": "Fit",
+            "type": "string",
+            "enum": ["cover", "contain", "fill", "inside", "outside"],
+            "default": "cover",
+            "description": "How the image should be resized to fit the target dimension(s)"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string",
+            "enum": ["centre", "north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"],
+            "default": "centre",
+            "description": "A position to use when fit is cover or contain."
+          },
+          "background": {
+            "title": "Background",
+            "type": "string",
+            "default": "#000000",
+            "description": "Background colour when fit is contain."
+          },
+          "kernel": {
+            "title": "Kernel",
+            "type": "string",
+            "enum": ["nearest", "cubic", "mitchell", "lanczos2", "lanczos3"],
+            "default": "lanczos3",
+            "description": "The kernel to use for image reduction."
+          },
+          "withoutEnlargement": {
+            "title": "Without Enlargement",
+            "type": "boolean",
+            "default": false,
+            "description": "Do not scale up if the width or height are already less than the target dimensions."
+          },
+          "fastShrinkOnLoad": {
+            "title": "Fast Shrink On Load",
+            "type": "boolean",
+            "default": true,
+            "description": "Take greater advantage of the JPEG and WebP shrink-on-load feature."
+          }
+        }
+      },
+      "responseTypes": {
+        "200": {
+          "schema": {
+            "required": ["images"],
+            "type": "string",
+            "properties": {
+              "images": {
+                "title": "Images",
+                "type": "object",
+                "x-type": "imageArray",
+                "description": "The processed images"
+              }
+            }
+          },
+          "contentType": "application/json"
+        }
+      },
+      "method": "X-CUSTOM"
+    },
+    patch: {
+      "title": "Resize Image (Sharp)",
+      "category": "Image Manipulation",
+      "summary": "Resize the image to given width and height using various options.",
+      "meta": {
+        "source": {
+          "summary": "Resize the image to the given dimensions with various options for scaling, fitting, and cropping.",
+          links: {
+            "Sharp Website": "https://sharp.pixelplumbing.com/",
+            "Documentation": "https://sharp.pixelplumbing.com/api-resize",
+            "Sharp Github": "https://github.com/lovell/sharp",
+            "Support Sharp": "https://opencollective.com/libvips"
+          }
+        }
+      },
+      inputs: {
+        "images": {
+          "type": "object",
+          "x-type": "imageArray",
+          "required": true,
+          "title": "Input Images",
+          "description": "Images to resize."
+        }
+      },
+      outputs: {
+        "images": {
+          "type": "object",
+          "x-type": "imageArray",
+          "title": "Output Images",
+          "description": "The resized images."
+        }
+      }
+    }
+  },
+  functions: {
+    _exec: async (payload, ctx) => {
+      if (payload.images) {
+        let images = await Promise.all(payload.images.map((image) => {
+          return ctx.app.cdn.get(image.ticket);
+        }));
+        let results = await Promise.all(images.map(async (image) => {
+          let width = payload.width;
+          let height = payload.height;
+          let fit = payload.fit;
+          let position = payload.position;
+          let background = payload.background;
+          let kernel = payload.kernel;
+          let withoutEnlargement = payload.withoutEnlargement;
+          let fastShrinkOnLoad = payload.fastShrinkOnLoad;
+          image.data = await sharp2(image.data).resize(width, height, {
+            fit,
+            position,
+            background,
+            kernel,
+            withoutEnlargement,
+            fastShrinkOnLoad
+          }).toBuffer();
+          return image;
+        }));
+        results = await writeToCdn_default(ctx, results);
+        return { images: results };
+      }
+      return {};
+    }
+  }
+};
+var SharpResizeComponent_default = SharpResizeComponent;
+
+// components.ts
 var SharpRotationComponent = {
   schema: {
     "tags": ["default"],
@@ -102,18 +287,15 @@ var SharpRotationComponent = {
         let angle = payload.angle || 90;
         let results = await Promise.all(images.map(async (image) => {
           let buffer = image.data;
-          let sharpImage = sharp(buffer);
+          let sharpImage = sharp3(buffer);
           sharpImage.rotate(angle, { background });
           let result = await sharpImage.toBuffer();
           image.data = result;
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, { rotation: angle }));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
-      return payload;
+      return { images: payload.images };
     }
   }
 };
@@ -207,7 +389,7 @@ var SharpBlurComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           let buffer = image.data;
-          let sharpImage = sharp(buffer);
+          let sharpImage = sharp3(buffer);
           if (payload.sigma == 0) {
             sharpImage.blur();
           }
@@ -219,12 +401,9 @@ var SharpBlurComponent = {
           image.data = result;
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
-      return payload;
+      return { images: payload.images };
     }
   }
 };
@@ -344,15 +523,12 @@ var SharpTintComponent = {
           b: parseInt(payload.blue)
         };
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp(image.data).tint(tint).toBuffer();
+          image.data = await sharp3(image.data).tint(tint).toBuffer();
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, { tint }));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results, { tint });
       }
-      return payload;
+      return { images: payload.images };
     }
   }
 };
@@ -432,19 +608,11 @@ var SharpGrayscaleComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           if (payload.grayscale) {
-            image.data = await sharp(image.data).grayscale(true).toBuffer();
+            image.data = await sharp3(image.data).grayscale(true).toBuffer();
           }
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          if (payload.grayscale) {
-            return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, { grayscale: payload.grayscale }));
-          } else {
-            delete image.data;
-            return image;
-          }
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results, { grayscale: payload.grayscale });
       }
       return payload;
     }
@@ -547,15 +715,10 @@ var SharpExtractComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           const { left, top, width, height } = payload;
-          image.data = await sharp(image.data).extract({ left, top, width, height }).toBuffer();
-          image.meta.width = width;
-          image.meta.height = height;
+          image.data = await sharp3(image.data).extract({ left, top, width, height }).toBuffer();
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
       return payload;
     }
@@ -666,16 +829,13 @@ var SharpTrimComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           if (payload.trimMode === "Background color") {
-            image.data = await sharp(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer();
+            image.data = await sharp3(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer();
           } else {
-            image.data = await sharp(image.data).trim(payload.threshold).toBuffer();
+            image.data = await sharp3(image.data).trim(payload.threshold).toBuffer();
           }
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
       return { images: payload.images };
     }
@@ -792,15 +952,12 @@ var SharpExtendComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           const { left, right, top, bottom, extendWith, background } = payload;
-          image.data = await sharp(image.data).extend({ left, right, top, bottom, extendWith, background }).toBuffer();
+          image.data = await sharp3(image.data).extend({ left, right, top, bottom, extendWith, background }).toBuffer();
           image.meta.width += left + right;
           image.meta.height += top + bottom;
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
       return payload;
     }
@@ -914,13 +1071,10 @@ var SharpModulateComponent = {
           if (args.hue == 0) {
             delete args.hue;
           }
-          image.data = await sharp(image.data).modulate(args).toBuffer();
+          image.data = await sharp3(image.data).modulate(args).toBuffer();
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
       return { images: payload.images };
     }
@@ -1002,13 +1156,10 @@ var SharpExtractChannelComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp(image.data).extractChannel(payload.channel).toBuffer();
+          image.data = await sharp3(image.data).extractChannel(payload.channel).toBuffer();
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
       return { images: payload.images };
     }
@@ -1083,12 +1234,12 @@ var SharpMetaDataComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          let md = await sharp(image.data).metadata();
+          let md = await sharp3(image.data).metadata();
           return Object.assign({}, image.meta, md || {});
         }));
         payload.metadata = results;
       }
-      return payload;
+      return { metadata: payload.netadata };
     }
   }
 };
@@ -1159,12 +1310,12 @@ var SharpStatsComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          let md = await sharp(image.data).stats();
+          let md = await sharp3(image.data).stats();
           return md;
         }));
         payload.stats = results;
       }
-      return payload;
+      return { stats: payload.stats };
     }
   }
 };
@@ -1236,13 +1387,10 @@ var SharpRemoveAlphaComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp(image.data).removeAlpha().toBuffer();
+          image.data = await sharp3(image.data).removeAlpha().toBuffer();
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
       return { images: payload.images };
     }
@@ -1331,19 +1479,16 @@ var SharpEnsureAlphaComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp(image.data).ensureAlpha(payload.alpha).toBuffer();
+          image.data = await sharp3(image.data).ensureAlpha(payload.alpha).toBuffer();
           return image;
         }));
-        results = await Promise.all(results.map((image) => {
-          return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta));
-        }));
-        payload.images = results;
+        payload.images = await writeToCdn_default(ctx, results);
       }
       return { images: payload.images };
     }
   }
 };
-var components = [SharpRotationComponent, SharpTrimComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent];
+var components = [SharpRotationComponent, SharpTrimComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent_default];
 var components_default = (FactoryFn) => {
   return components.map((c) => FactoryFn(c.schema, c.functions));
 };

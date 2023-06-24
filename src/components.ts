@@ -1,5 +1,7 @@
-
 import sharp from 'sharp'
+import SharpResizeComponent from './components/SharpResizeComponent'
+import writeToCdn from './util/writeToCdn'
+
 
 const SharpRotationComponent =
   {
@@ -130,17 +132,11 @@ const SharpRotationComponent =
             image.data = result
             return image
           }))
-
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {rotation: angle}))
-          }))
-
-          payload.images = results
+             
+          payload.images = await writeToCdn(ctx, results)
         }
 
-        return payload
+        return {images: payload.images}
       }
     }
   }
@@ -251,9 +247,6 @@ const SharpRotationComponent =
             return ctx.app.cdn.get(image.ticket)
           }))
 
-
-
-
           let results = await Promise.all(images.map(async (image: any) =>
           {
             let buffer = image.data
@@ -273,16 +266,11 @@ const SharpRotationComponent =
             return image
           }))
 
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
-          }))
-
-          payload.images = results
+         
+          payload.images = await writeToCdn(ctx, results)
         }
 
-        return payload
+        return {images: payload.images}
       }
     }
   }
@@ -432,16 +420,11 @@ const SharpRotationComponent =
             return image
           }))
 
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {tint: tint}))
-          }))
-
-          payload.images = results
+        
+          payload.images = await writeToCdn(ctx, results, {tint})
         }
 
-        return payload
+        return {images: payload.images}
       }
     }
   }
@@ -549,26 +532,9 @@ const SharpRotationComponent =
 
             return image
 
-
           }))
-
-
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            if (payload.grayscale)
-            {
-              return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta, {grayscale: payload.grayscale}))
-            }
-            else
-            {
-              delete image.data
-              return image
-            }
-
-          }))
-
-          payload.images = results
+                    
+          payload.images = await writeToCdn(ctx, results, {grayscale: payload.grayscale})
         }
 
         return payload
@@ -692,18 +658,10 @@ const SharpRotationComponent =
             const { left, top, width, height } = payload
 
             image.data = await sharp(image.data).extract({left,top, width, height}).toBuffer()
-            image.meta.width = width
-            image.meta.height = height
             return image
           }))
 
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
-          }))
-
-          payload.images = results
+          payload.images = await writeToCdn(ctx, results)
         }
 
         return payload
@@ -846,13 +804,7 @@ const SharpRotationComponent =
             return image
           }))
 
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
-          }))
-
-          payload.images = results
+          payload.images = await writeToCdn(ctx, results)
         }
 
         return {images: payload.images}
@@ -999,13 +951,7 @@ const SharpRotationComponent =
             return image
           }))
 
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
-          }))
-
-          payload.images = results
+          payload.images = await writeToCdn(ctx, results)
         }
 
         return payload
@@ -1150,13 +1096,8 @@ const SharpRotationComponent =
             return image
           }))
 
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
-          }))
 
-          payload.images = results
+          payload.images = await writeToCdn(ctx, results)
         }
 
         return {images: payload.images}
@@ -1267,13 +1208,8 @@ const SharpRotationComponent =
             return image
           }))
 
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
-          }))
-
-          payload.images = results
+ 
+          payload.images = await writeToCdn(ctx, results)
         }
 
         return {images: payload.images}
@@ -1380,7 +1316,7 @@ const SharpRotationComponent =
           payload.metadata = results
         }
 
-        return payload
+        return {metadata: payload.netadata}
       }
     }
   }
@@ -1482,7 +1418,7 @@ const SharpRotationComponent =
           payload.stats = results
         }
 
-        return payload
+        return {stats: payload.stats}
       }
     }
   }
@@ -1580,12 +1516,9 @@ const SharpRotationComponent =
           }))
 
           // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
-          }))
 
-          payload.images = results
+
+          payload.images = await writeToCdn(ctx, results)
         }
 
         return {images: payload.images}
@@ -1703,13 +1636,9 @@ const SharpRotationComponent =
             return image
           }))
 
-          // write new record
-          results = await Promise.all(results.map((image: any) =>
-          {
-            return ctx.app.cdn.putTemp(image.data, {mimeType: image.mimeType}, Object.assign({}, image.meta))
-          }))
 
-          payload.images = results
+          payload.images = await writeToCdn(ctx, results)
+
         }
 
         return {images: payload.images}
@@ -1719,10 +1648,10 @@ const SharpRotationComponent =
 
 
 
-let components = [SharpRotationComponent, SharpTrimComponent,  SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent]
+let components = [SharpRotationComponent, SharpTrimComponent,  SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent]
 
 
 export default (FactoryFn: any) =>
 {
-  return components.map((c) => FactoryFn(c.schema, c.functions))
+  return components.map((c:any) => FactoryFn(c.schema, c.functions))
 }
