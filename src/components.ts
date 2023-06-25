@@ -1,5 +1,6 @@
 import sharp from 'sharp'
 import SharpResizeComponent from './components/SharpResizeComponent'
+import SharpCompositeComponent from './components/SharpCompositeComponent'
 import writeToCdn from './util/writeToCdn'
 
 
@@ -1648,7 +1649,7 @@ const SharpRotationComponent =
 
 
 
-let components = [SharpRotationComponent, SharpTrimComponent,  SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent]
+let components = [SharpRotationComponent, SharpTrimComponent,  SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent, SharpCompositeComponent]
 
 
 export default (FactoryFn: any) =>

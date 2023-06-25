@@ -1,5 +1,5 @@
 // components.ts
-import sharp3 from "sharp";
+import sharp4 from "sharp";
 
 // components/SharpResizeComponent.ts
 import sharp2 from "sharp";
@@ -184,6 +184,126 @@ var SharpResizeComponent = {
 };
 var SharpResizeComponent_default = SharpResizeComponent;
 
+// components/SharpCompositeComponent.ts
+import sharp3 from "sharp";
+var SharpCompositeComponent = {
+  schema: {
+    "tags": ["default"],
+    "componentKey": "composite",
+    "operation": {
+      "schema": {
+        "title": "Composite Image",
+        "type": "object",
+        "required": ["images", "compositeImages"],
+        "properties": {
+          "images": {
+            "type": "array",
+            "x-type": "imageArray",
+            "description": "Images to be processed"
+          },
+          "compositeImages": {
+            "type": "array",
+            "x-type": "imageArray",
+            "description": "Images to be composited"
+          },
+          "blend": {
+            "type": "string",
+            "enum": ["clear", "source", "over", "in", "out", "atop", "dest", "dest-over", "dest-in", "dest-out", "dest-atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "colour-dodge", "color-dodge", "colour-burn", "color-burn", "hard-light", "soft-light", "difference", "exclusion"],
+            "description": "How to blend this image with the image below."
+          },
+          "gravity": {
+            "type": "string",
+            "enum": ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest", "centre", "center"],
+            "description": "Gravity at which to place the overlay."
+          },
+          "top": {
+            "type": "number",
+            "description": "The pixel offset from the top edge."
+          },
+          "left": {
+            "type": "number",
+            "description": "The pixel offset from the left edge."
+          },
+          "tile": {
+            "type": "boolean",
+            "description": "Set to true to repeat the overlay image across the entire image with the given gravity."
+          },
+          "premultiplied": {
+            "type": "boolean",
+            "description": "Set to true to avoid premultiplying the image below."
+          },
+          "density": {
+            "type": "number",
+            "description": "Number representing the DPI for vector overlay image."
+          }
+        }
+      },
+      "responseTypes": {
+        "200": {
+          "schema": {
+            "required": ["images"],
+            "type": "array",
+            "properties": {
+              "images": {
+                "type": "object",
+                "x-type": "imageArray",
+                "description": "The processed images"
+              }
+            }
+          },
+          "contentType": "application/json"
+        }
+      },
+      "method": "X-CUSTOM"
+    },
+    patch: {
+      "title": "Composite Image (Sharp)",
+      "category": "Image Manipulation",
+      "summary": "Composite image(s) over the processed image using various options.",
+      "meta": {
+        "source": {
+          "summary": "Composite image(s) over the processed image with options for blending, placement, tiling, and more.",
+          "links": {
+            "Sharp Website": "https://sharp.pixelplumbing.com/",
+            "Documentation": "https://sharp.pixelplumbing.com/api-composite",
+            "Sharp Github": "https://github.com/lovell/sharp",
+            "Support Sharp": "https://opencollective.com/libvips"
+          }
+        }
+      }
+    }
+  },
+  functions: {
+    _exec: async (payload, ctx) => {
+      if (payload.images && payload.compositeImages) {
+        let images = await Promise.all(payload.images.map((image) => {
+          return ctx.app.cdn.get(image.ticket);
+        }));
+        let compositeImages = await Promise.all(payload.compositeImages.map((image) => {
+          return ctx.app.cdn.get(image.ticket);
+        }));
+        let results = await Promise.all(images.map(async (image, index) => {
+          image.data = await sharp3(image.data).composite(compositeImages.map((compositeImage) => ({
+            input: compositeImage.data,
+            blend: payload.blend,
+            gravity: payload.gravity,
+            top: payload.top,
+            left: payload.left,
+            tile: payload.tile,
+            premultiplied: payload.premultiplied,
+            density: payload.density
+          }))).toBuffer();
+          return image;
+        }));
+        results = await writeToCdn_default(ctx, results);
+        return { images: results };
+      }
+      return {};
+    }
+  }
+};
+var SharpCompositeComponent_default = SharpCompositeComponent;
+
 // components.ts
 var SharpRotationComponent = {
   schema: {
@@ -287,7 +407,7 @@ var SharpRotationComponent = {
         let angle = payload.angle || 90;
         let results = await Promise.all(images.map(async (image) => {
           let buffer = image.data;
-          let sharpImage = sharp3(buffer);
+          let sharpImage = sharp4(buffer);
           sharpImage.rotate(angle, { background });
           let result = await sharpImage.toBuffer();
           image.data = result;
@@ -389,7 +509,7 @@ var SharpBlurComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           let buffer = image.data;
-          let sharpImage = sharp3(buffer);
+          let sharpImage = sharp4(buffer);
           if (payload.sigma == 0) {
             sharpImage.blur();
           }
@@ -523,7 +643,7 @@ var SharpTintComponent = {
           b: parseInt(payload.blue)
         };
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp3(image.data).tint(tint).toBuffer();
+          image.data = await sharp4(image.data).tint(tint).toBuffer();
           return image;
         }));
         payload.images = await writeToCdn_default(ctx, results, { tint });
@@ -608,7 +728,7 @@ var SharpGrayscaleComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           if (payload.grayscale) {
-            image.data = await sharp3(image.data).grayscale(true).toBuffer();
+            image.data = await sharp4(image.data).grayscale(true).toBuffer();
           }
           return image;
         }));
@@ -715,7 +835,7 @@ var SharpExtractComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           const { left, top, width, height } = payload;
-          image.data = await sharp3(image.data).extract({ left, top, width, height }).toBuffer();
+          image.data = await sharp4(image.data).extract({ left, top, width, height }).toBuffer();
           return image;
         }));
         payload.images = await writeToCdn_default(ctx, results);
@@ -829,9 +949,9 @@ var SharpTrimComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           if (payload.trimMode === "Background color") {
-            image.data = await sharp3(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer();
+            image.data = await sharp4(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer();
           } else {
-            image.data = await sharp3(image.data).trim(payload.threshold).toBuffer();
+            image.data = await sharp4(image.data).trim(payload.threshold).toBuffer();
           }
           return image;
         }));
@@ -952,7 +1072,7 @@ var SharpExtendComponent = {
         }));
         let results = await Promise.all(images.map(async (image) => {
           const { left, right, top, bottom, extendWith, background } = payload;
-          image.data = await sharp3(image.data).extend({ left, right, top, bottom, extendWith, background }).toBuffer();
+          image.data = await sharp4(image.data).extend({ left, right, top, bottom, extendWith, background }).toBuffer();
           image.meta.width += left + right;
           image.meta.height += top + bottom;
           return image;
@@ -1071,7 +1191,7 @@ var SharpModulateComponent = {
           if (args.hue == 0) {
             delete args.hue;
           }
-          image.data = await sharp3(image.data).modulate(args).toBuffer();
+          image.data = await sharp4(image.data).modulate(args).toBuffer();
           return image;
         }));
         payload.images = await writeToCdn_default(ctx, results);
@@ -1156,7 +1276,7 @@ var SharpExtractChannelComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp3(image.data).extractChannel(payload.channel).toBuffer();
+          image.data = await sharp4(image.data).extractChannel(payload.channel).toBuffer();
           return image;
         }));
         payload.images = await writeToCdn_default(ctx, results);
@@ -1234,7 +1354,7 @@ var SharpMetaDataComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          let md = await sharp3(image.data).metadata();
+          let md = await sharp4(image.data).metadata();
           return Object.assign({}, image.meta, md || {});
         }));
         payload.metadata = results;
@@ -1310,7 +1430,7 @@ var SharpStatsComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          let md = await sharp3(image.data).stats();
+          let md = await sharp4(image.data).stats();
           return md;
         }));
         payload.stats = results;
@@ -1387,7 +1507,7 @@ var SharpRemoveAlphaComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp3(image.data).removeAlpha().toBuffer();
+          image.data = await sharp4(image.data).removeAlpha().toBuffer();
           return image;
         }));
         payload.images = await writeToCdn_default(ctx, results);
@@ -1479,7 +1599,7 @@ var SharpEnsureAlphaComponent = {
           return ctx.app.cdn.get(image.ticket);
         }));
         let results = await Promise.all(images.map(async (image) => {
-          image.data = await sharp3(image.data).ensureAlpha(payload.alpha).toBuffer();
+          image.data = await sharp4(image.data).ensureAlpha(payload.alpha).toBuffer();
           return image;
         }));
         payload.images = await writeToCdn_default(ctx, results);
@@ -1488,7 +1608,7 @@ var SharpEnsureAlphaComponent = {
     }
   }
 };
-var components = [SharpRotationComponent, SharpTrimComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent_default];
+var components = [SharpRotationComponent, SharpTrimComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent_default, SharpCompositeComponent_default];
 var components_default = (FactoryFn) => {
   return components.map((c) => FactoryFn(c.schema, c.functions));
 };
