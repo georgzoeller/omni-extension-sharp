@@ -87,6 +87,21 @@ const SharpCompositeComponent =
       "title": "Composite Image (Sharp)",
       "category": "Image Manipulation",
       "summary": "Composite image(s) over the processed image using various options.",
+      "inputs":
+      {
+        "blend": {
+          default: "clear",
+        },
+        "gravity": {
+          "default": "northeast"
+        },
+        density: {
+          "minimum": 1,
+          "step": 1,
+          "maximum": 600,
+          "default": 72
+        }
+      },
       "meta": {
         "source": {
           "summary": "Composite image(s) over the processed image with options for blending, placement, tiling, and more.",

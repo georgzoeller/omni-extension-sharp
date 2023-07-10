@@ -8,7 +8,7 @@ const updateMetaData = async (image) =>{
         // update metadata
         let img = sharp(image.data);
         let metadata = await img.metadata();
-        image.meta = { height: metadata.height, width: metadata.width, format: metadata.format, size: metadata.size, channels: metadata.channels };            
+        image.meta = { height: metadata.height, width: metadata.width, format: metadata.format, size: metadata.size, channels: metadata.channels };
     }
     return image;
 
