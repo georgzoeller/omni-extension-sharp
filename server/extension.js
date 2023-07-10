@@ -21,12 +21,9 @@ var writeToCdn = async (ctx, images, meta) => {
   console.log("writeToCdn");
   return Promise.all(images.map(async (image) => {
     if (image.data != null) {
-      console.log("image", image.data);
       await updateMetaData_default(image);
-      console.log("post-meta", image.data);
-      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType }, Object.assign({}, image.meta, meta || {}));
+      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId }, Object.assign({}, image.meta, meta || {}, { user: ctx.user.id }));
     } else {
-      console.log("no image data");
       return image;
     }
   }));
@@ -209,12 +206,14 @@ var SharpCompositeComponent = {
           "blend": {
             "type": "string",
             "enum": ["clear", "source", "over", "in", "out", "atop", "dest", "dest-over", "dest-in", "dest-out", "dest-atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "colour-dodge", "color-dodge", "colour-burn", "color-burn", "hard-light", "soft-light", "difference", "exclusion"],
-            "description": "How to blend this image with the image below."
+            "description": "How to blend this image with the image below.",
+            "default": "clear"
           },
           "gravity": {
             "type": "string",
             "enum": ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest", "centre", "center"],
-            "description": "Gravity at which to place the overlay."
+            "description": "Gravity at which to place the overlay.",
+            "default": "northeast"
           },
           "top": {
             "type": "number",
@@ -234,7 +233,11 @@ var SharpCompositeComponent = {
           },
           "density": {
             "type": "number",
-            "description": "Number representing the DPI for vector overlay image."
+            "description": "Number representing the DPI for vector overlay image.",
+            "minimum": 1,
+            "step": 1,
+            "maximum": 600,
+            "default": 72
           }
         }
       },
@@ -260,6 +263,20 @@ var SharpCompositeComponent = {
       "title": "Composite Image (Sharp)",
       "category": "Image Manipulation",
       "summary": "Composite image(s) over the processed image using various options.",
+      "inputs": {
+        "blend": {
+          default: "clear"
+        },
+        "gravity": {
+          "default": "northeast"
+        },
+        density: {
+          "minimum": 1,
+          "step": 1,
+          "maximum": 600,
+          "default": 72
+        }
+      },
       "meta": {
         "source": {
           "summary": "Composite image(s) over the processed image with options for blending, placement, tiling, and more.",
