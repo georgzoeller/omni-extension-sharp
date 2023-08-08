@@ -5,5 +5,7 @@ author: Georg Zoeller
 origin: https://github.com/georgzoeller/omni-extension-sharp.git
 dependencies:
   sharp: sharp
+supports:
+  - blocks:v2
 client:
   addToWorkbench: false
