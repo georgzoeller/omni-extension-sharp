@@ -5,12 +5,12 @@ import writeToCdn from '../util/writeToCdn'
 const NS_OMNI = 'sharp'
 
 //  SharpExtractComponent
-let extractComponent = OAIBaseComponent
+let component = OAIBaseComponent
   .create(NS_OMNI, 'extract')
   .fromScratch()
+  .set('description', 'Extracts/Crops an image region')
   .set('title', 'Extract Image Region (Sharp)')
   .set('category', 'Image Manipulation')
-  .set('description', 'Extracts/Crops an image region')
   .setMethod('X-CUSTOM')
   .setMeta({
     source: {
@@ -23,63 +23,62 @@ let extractComponent = OAIBaseComponent
       }
     }
   })
-  extractComponent
+component
   .addInput(
-    extractComponent.createInput('images', 'object', 'imageArray')
-      .set('title', 'Image')
+    component.createInput('images', 'object', 'imageArray')
       .set('description', 'The image(s) to extract from')
       .setRequired(true)
+      .setControl({
+        controlType: 'AlpineLabelComponent' 
+      })
       .toOmniIO()
   )
   .addInput(
-    extractComponent.createInput('left', 'number')
-      .set('title', 'Left')
+    component.createInput('left', 'number')
+      .set('description', 'Left')
       .setDefault(0)
-      .set('minimum', 0)
+      .setConstraints(0)
       .toOmniIO()
   )
   .addInput(
-    extractComponent.createInput('top', 'number')
-      .set('title', 'Top')
+    component.createInput('top', 'number')
+      .set('description', 'Top')
       .setDefault(0)
-      .set('minimum', 0)
+      .setConstraints(0)
       .toOmniIO()
   )
   .addInput(
-    extractComponent.createInput('width', 'number')
-      .set('title', 'Width')
+    component.createInput('width', 'number')
+      .set('description', 'Width')
       .setDefault(512)
-      .set('minimum', 0)
+      .setConstraints(0)
       .toOmniIO()
   )
   .addInput(
-    extractComponent.createInput('height', 'number')
-      .set('title', 'Height')
+    component.createInput('height', 'number')
+      .set('description', 'Height')
       .setDefault(512)
-      .set('minimum', 0)
+      .setConstraints(0)
       .toOmniIO()
   )
   .addOutput(
-    extractComponent.createOutput('images', 'object', 'imageArray')
-      .set('title', 'Images')
+    component.createOutput('images', 'object', 'imageArray')
       .set('description', 'The processed images')
       .toOmniIO()
   )
   .setMacro(OmniComponentMacroTypes.EXEC, async (payload: any, ctx: WorkerContext) => {
     if (payload.images) {
-      let images = await Promise.all(payload.images.map((image: any) => {
+      let images = await Promise.all(payload.images.map((image: any) =>{
         return ctx.app.cdn.get(image.ticket)
       }))
-  let results = await Promise.all(images.map(async (image: any) => {
-    const { left, top, width, height } = payload
-    image.data = await sharp(image.data).extract({ left, top, width, height }).toBuffer()
-    return image
-  }))
-
-  payload.images = await writeToCdn(ctx, results)
-}
-return payload
-
+      let results = await Promise.all(images.map(async (image: any) => {
+        const { left, top, width, height } = payload
+        image.data = await sharp(image.data).extract({left,top, width, height}).toBuffer()
+        return image
+      }))
+      payload.images = await writeToCdn(ctx, results)
+    }
+    return {images: payload.images}
   })
-const SharpExtractComponent = extractComponent.toJSON()
+const SharpExtractComponent = component.toJSON()
 export default SharpExtractComponent
