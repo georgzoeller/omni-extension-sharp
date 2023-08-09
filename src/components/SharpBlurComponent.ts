@@ -34,7 +34,7 @@ let blurComponent = OAIBaseComponent.create(NS_OMNI, 'blur')
     blurComponent.createInput('sigma', 'number')
       .set('description', 'The sigma value for Gaussian BLur, 0 for fast blur, 0.3-1000 for Gaussian Blur Sigma')
       .setDefault(0)
-      .setConstraints(0, 3e3)
+      .setConstraints(0, 1000)
       .toOmniIO()
   )
   .addOutput(

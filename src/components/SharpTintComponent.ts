@@ -62,22 +62,22 @@ let tintComponent = OAIBaseComponent
       let images = await Promise.all(payload.images.map((image: any) => {
         return ctx.app.cdn.get(image.ticket)
       }))
-  const tint = {
-    r: parseInt(payload.red),
-    g: parseInt(payload.green),
-    b: parseInt(payload.blue)
-  }
+    const tint = {
+        r: parseInt(payload.red),
+        g: parseInt(payload.green),
+        b: parseInt(payload.blue)
+    }
 
-  let results = await Promise.all(images.map(async (image: any) => {
-    image.data = await sharp(image.data).tint(tint).toBuffer()
-    return image
-  }))
+    let results = await Promise.all(images.map(async (image: any) => {
+        image.data = await sharp(image.data).tint(tint).toBuffer()
+        return image
+    }))
 
-  payload.images = await writeToCdn(ctx, results, { tint })
-}
+    payload.images = await writeToCdn(ctx, results, { tint })
+    }
 
-return { images: payload.images }
+    return { images: payload.images }
 
-  })
+    })
 const SharpTintComponent = tintComponent.toJSON()
 export default SharpTintComponent

@@ -5,12 +5,12 @@ import writeToCdn from '../util/writeToCdn'
 const NS_OMNI = 'sharp'
 
 // SharpRotationComponent
-let rotateComponent = OAIBaseComponent
-  .create(NS_OMNI, 'rotate')
+const component = OAIBaseComponent
+  .create(NS_OMNI, "rotate")
   .fromScratch()
+  .set('description', 'Rotate an image using the high speed impage manipulation library Sharp for nodejs')
   .set('title', 'Rotate Image (Sharp)')
   .set('category', 'Image Manipulation')
-  .set('description', 'Rotates an image')
   .setMethod('X-CUSTOM')
   .setMeta({
     source: {
@@ -22,58 +22,59 @@ let rotateComponent = OAIBaseComponent
         'Support Sharp': 'https://opencollective.com/libvips'
       }
     }
-  })
-  rotateComponent
+  });
+component
   .addInput(
-    rotateComponent.createInput('images', 'object', 'imageArray')
-      .set('title', 'Image')
+    component.createInput('images', 'object', 'imageArray')
       .set('description', 'The image(s) to rotate')
       .setRequired(true)
+      .setControl({
+        controlType: 'AlpineLabelComponent' 
+      })
       .toOmniIO()
   )
   .addInput(
-    rotateComponent.createInput('angle', 'number')
-      .set('title', 'Angle')
+    component.createInput('angle', 'number')
       .set('description', 'The angle of rotation. (optional, default 0)')
       .setDefault(0)
       .setConstraints(-360, 360, 1)
+      .setControl({
+        controlType: 'AlpineNumWithSliderComponent' 
+      })
       .toOmniIO()
   )
   .addInput(
-    rotateComponent.createInput('background', 'string', 'text')
-      .set('title', 'Background')
+    component.createInput('background', 'string')
       .set('description', 'Background colour when using a non-zero angle. (optional, default black)')
       .setDefault('black')
+      .setControl({
+        controlType: 'AlpineColorComponent' 
+      })
       .toOmniIO()
   )
   .addOutput(
-    rotateComponent.createOutput('images', 'object', 'imageArray')
-      .set('title', 'Images')
+    component.createOutput('images', 'object', 'imageArray')
       .set('description', 'The rotated images')
       .toOmniIO()
   )
   .setMacro(OmniComponentMacroTypes.EXEC, async (payload: any, ctx: WorkerContext) => {
     if (payload.images) {
-      let images = await Promise.all(payload.images.map((image: any) => {
+      let images = await Promise.all(payload.images.map((image: any) =>{
         return ctx.app.cdn.get(image.ticket)
       }))
-  let background = payload.background || 'black'
-  let angle = payload.angle || 0
-
-  let results = await Promise.all(images.map(async (image: any) => {
-    let buffer = image.data
-    let sharpImage = sharp(buffer)
-    sharpImage.rotate(angle, { background })
-    let result = await sharpImage.toBuffer()
-    image.data = result
-    return image
-  }))
-
-  payload.images = await writeToCdn(ctx, results)
-}
-
-return { images: payload.images }
-
+      let background = payload.background || 'black'
+      let angle = payload.angle || 90
+      let results = await Promise.all(images.map(async (image: any) => {
+        let buffer = image.data
+        let sharpImage = sharp(buffer)
+        sharpImage.rotate(angle, { background: background })
+        let result = await sharpImage.toBuffer()
+        image.data = result
+        return image
+      }))
+      payload.images = await writeToCdn(ctx, results)
+    }
+    return {images: payload.images}
   })
-const SharpRotationComponent = rotateComponent.toJSON()
-export default SharpRotationComponent
+const SharpRotateComponent = component.toJSON()
+export default SharpRotateComponent

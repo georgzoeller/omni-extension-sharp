@@ -5,78 +5,78 @@ import writeToCdn from '../util/writeToCdn'
 const NS_OMNI = 'sharp'
 
 // SharpCompositeComponent
-let compositeComponent = OAIBaseComponent
+let component = OAIBaseComponent
   .create(NS_OMNI, 'composite')
   .fromScratch()
+  .set('description', 'Composite image(s) over the processed image using various options.')
   .set('title', 'Composite Image (Sharp)')
   .set('category', 'Image Manipulation')
-  .set('description', 'Composite image(s) over the processed image using various options.')
   .setMethod('X-CUSTOM')
   .setMeta({
-    source: {
-      summary: 'Composite image(s) over the processed image with options for blending, placement, tiling, and more.',
-      links: {
-        'Sharp Website': 'https://sharp.pixelplumbing.com/',
-        'Documentation': 'https://sharp.pixelplumbing.com/api-composite',
-        'Sharp Github': 'https://github.com/lovell/sharp',
-        'Support Sharp': 'https://opencollective.com/libvips'
+      source: {
+        summary: 'Composite image(s) over the processed image with options for blending, placement, tiling, and more.',
+        links: {
+          'Sharp Website': 'https://sharp.pixelplumbing.com/',
+          'Documentation': 'https://sharp.pixelplumbing.com/api-composite',
+          'Sharp Github': 'https://github.com/lovell/sharp',
+          'Support Sharp': 'https://opencollective.com/libvips'
+        }
       }
-    }
   })
-  compositeComponent
+component
   .addInput(
-    compositeComponent.createInput('images', 'array', 'imageArray')
+    component.createInput('images', 'array', 'imageArray')
       .set('description', 'Images to be processed')
       .setRequired(true)
       .toOmniIO()
   )
   .addInput(
-    compositeComponent.createInput('compositeImages', 'array', 'imageArray')
+    component.createInput('compositeImages', 'array', 'imageArray')
       .set('description', 'Images to be composited')
       .setRequired(true)
       .toOmniIO()
   )
   .addInput(
-    compositeComponent.createInput('blend', 'string')
+    component.createInput('blend', 'string')
       .set('description', 'How to blend this image with the image below.')
-      .setDefault('clear')
+      .setChoices(['clear', 'source', 'over', 'in', 'out', 'atop', 'dest', 'dest-over', 'dest-in', 'dest-out', 'dest-atop', 'xor', 'add', 'saturate', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'colour-dodge', 'color-dodge', 'colour-burn', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'], 'clear')
       .toOmniIO()
   )
   .addInput(
-    compositeComponent.createInput('gravity', 'string')
+    component.createInput('gravity', 'string')
       .set('description', 'Gravity at which to place the overlay.')
-      .setDefault('northeast')
+      .setChoices(['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest', 'centre', 'center'], 'northeast')
       .toOmniIO()
   )
   .addInput(
-    compositeComponent.createInput('top', 'number')
+    component.createInput('top', 'number')
       .set('description', 'The pixel offset from the top edge.')
       .toOmniIO()
   )
   .addInput(
-    compositeComponent.createInput('left', 'number')
+    component.createInput('left', 'number')
       .set('description', 'The pixel offset from the left edge.')
       .toOmniIO()
   )
   .addInput(
-    compositeComponent.createInput('tile', 'boolean')
+    component.createInput('tile', 'boolean')
       .set('description', 'Set to true to repeat the overlay image across the entire image with the given gravity.')
       .toOmniIO()
   )
   .addInput(
-    compositeComponent.createInput('premultiplied', 'boolean')
+    component.createInput('premultiplied', 'boolean')
       .set('description', 'Set to true to avoid premultiplying the image below.')
       .toOmniIO()
   )
   .addInput(
-    compositeComponent.createInput('density', 'number')
+    component.createInput('density', 'number')
       .set('description', 'Number representing the DPI for vector overlay image.')
       .setDefault(72)
       .setConstraints(1, 600, 1)
       .toOmniIO()
   )
   .addOutput(
-    compositeComponent.createOutput('images', 'array', 'imageArray')
+    component.createOutput('images', 'object', 'imageArray')
       .set('description', 'The processed images')
       .toOmniIO()
   )
@@ -89,16 +89,18 @@ let compositeComponent = OAIBaseComponent
         return ctx.app.cdn.get(image.ticket)
       }))
       let results = await Promise.all(images.map(async (image: any, index: number) => {
-        image.data = await sharp(image.data).composite(compositeImages.map((compositeImage: any) => ({
-          input: compositeImage.data,
-          blend: payload.blend,
-          gravity: payload.gravity,
-          top: payload.top,
-          left: payload.left,
-          tile: payload.tile,
-          premultiplied: payload.premultiplied,
-          density: payload.density
-        }))).toBuffer()
+        image.data = await sharp(image.data)
+          .composite(compositeImages.map((compositeImage: any) => ({
+            input: compositeImage.data,
+            blend: payload.blend,
+            gravity: payload.gravity,
+            top: payload.top,
+            left: payload.left,
+            tile: payload.tile,
+            premultiplied: payload.premultiplied,
+            density: payload.density
+          })))
+          .toBuffer()
         return image
       }))
       results = await writeToCdn(ctx, results)
@@ -106,6 +108,5 @@ let compositeComponent = OAIBaseComponent
     }
     return {}
   })
-const SharpCompositeComponent = compositeComponent.toJSON()
-
-export default SharpCompositeComponent;
+const SharpCompositeComponent = component.toJSON()
+export default SharpCompositeComponent
