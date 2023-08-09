@@ -12601,7 +12601,7 @@ var writeToCdn = async (ctx, images, meta) => {
   return Promise.all(images.map(async (image) => {
     if (image.data != null) {
       await updateMetaData_default(image);
-      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId }, Object.assign({}, image.meta, meta || {}, { user: ctx.user.id }));
+      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId }, Object.assign({}, image.meta, meta || {}, { user: ctx.userId }));
     } else {
       return image;
     }
