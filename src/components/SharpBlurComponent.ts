@@ -48,23 +48,23 @@ let blurComponent = OAIBaseComponent.create(NS_OMNI, 'blur')
     let images = await Promise.all(payload.images.map((image: any) => {
       return ctx.app.cdn.get(image.ticket)
     }))
-let results = await Promise.all(images.map(async (image: any) => {
-  let buffer = image.data
-  let sharpImage = sharp(buffer)
+    let results = await Promise.all(images.map(async (image: any) => {
+      let buffer = image.data
+      let sharpImage = sharp(buffer)
 
-  if (payload.sigma === 0) {
-    sharpImage.blur()
-  }
+      if (payload.sigma === 0) {
+        sharpImage.blur()
+      }
 
-  if (payload.sigma > 0) {
-    let sigma = Math.max(0.3, Math.min(1e3, payload.sigma))
-    sharpImage.blur(sigma)
-  }
+      if (payload.sigma > 0) {
+        let sigma = Math.max(0.3, Math.min(1000, payload.sigma))
+        sharpImage.blur(sigma)
+      }
 
-  let result = await sharpImage.toBuffer()
-  image.data = result
-  return image
-}))
+      let result = await sharpImage.toBuffer()
+      image.data = result
+      return image
+    }))
 
 payload.images = await writeToCdn(ctx, results)
 
