@@ -25,14 +25,16 @@ let component = OAIBaseComponent
   })
 component
   .addInput(
-    component.createInput('images', 'array', 'imageArray')
+    component.createInput('images', 'array', 'image', {array: true})
       .set('description', 'Images to be processed')
       .setRequired(true)
+      .allowMultiple(true)
       .toOmniIO()
   )
   .addInput(
-    component.createInput('compositeImages', 'array', 'imageArray')
+    component.createInput('compositeImages', 'array', 'image', {array: true})
       .set('description', 'Images to be composited')
+      .allowMultiple(true)
       .setRequired(true)
       .toOmniIO()
   )
@@ -76,7 +78,7 @@ component
       .toOmniIO()
   )
   .addOutput(
-    component.createOutput('images', 'object', 'imageArray')
+    component.createOutput('images', 'object', 'image', {array: true})
       .set('description', 'The processed images')
       .toOmniIO()
   )

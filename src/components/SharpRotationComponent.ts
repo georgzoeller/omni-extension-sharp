@@ -25,11 +25,12 @@ const component = OAIBaseComponent
   });
 component
   .addInput(
-    component.createInput('images', 'object', 'imageArray')
+    component.createInput('images', 'object', 'image', {array: true})
       .set('description', 'The image(s) to rotate')
       .setRequired(true)
+      .allowMultiple(true)
       .setControl({
-        controlType: 'AlpineLabelComponent' 
+        controlType: 'AlpineLabelComponent'
       })
       .toOmniIO()
   )
@@ -39,7 +40,7 @@ component
       .setDefault(0)
       .setConstraints(-360, 360, 1)
       .setControl({
-        controlType: 'AlpineNumWithSliderComponent' 
+        controlType: 'AlpineNumWithSliderComponent'
       })
       .toOmniIO()
   )
@@ -48,12 +49,12 @@ component
       .set('description', 'Background colour when using a non-zero angle. (optional, default black)')
       .setDefault('black')
       .setControl({
-        controlType: 'AlpineColorComponent' 
+        controlType: 'AlpineColorComponent'
       })
       .toOmniIO()
   )
   .addOutput(
-    component.createOutput('images', 'object', 'imageArray')
+    component.createOutput('images', 'object', 'image', {array: true})
       .set('description', 'The rotated images')
       .toOmniIO()
   )

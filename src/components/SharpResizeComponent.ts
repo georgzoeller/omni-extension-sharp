@@ -13,9 +13,10 @@ let resizeComponent = OAIBaseComponent
     .setMethod('X-CUSTOM')
 resizeComponent.
     addInput(
-      resizeComponent.createInput('images', 'object', 'imageArray')
+      resizeComponent.createInput('images', 'object', 'image', {array: true})
           .set('title', 'Input Images')
           .set('description', 'Images to resize.')
+          .allowMultiple(true)
           .setRequired(true)
           .toOmniIO()
     )
@@ -76,7 +77,7 @@ resizeComponent.
             .toOmniIO()
     )
     .addOutput(
-        resizeComponent.createOutput('images', 'object', 'imageArray')
+        resizeComponent.createOutput('images', 'object', 'image', {array: true})
             .set('title', 'Output Images')
             .set('description', 'The resized images.')
             .toOmniIO()
@@ -106,14 +107,14 @@ resizeComponent.
             let withoutEnlargement = payload.withoutEnlargement
             let fastShrinkOnLoad = payload.fastShrinkOnLoad
             image.data = await sharp(image.data).resize(
-                width, 
+                width,
                 height,
                 {
-                    fit, 
-                    position, 
-                    background, 
-                    kernel, 
-                    withoutEnlargement, 
+                    fit,
+                    position,
+                    background,
+                    kernel,
+                    withoutEnlargement,
                     fastShrinkOnLoad
                 }
             ).toBuffer()

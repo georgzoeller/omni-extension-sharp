@@ -25,10 +25,11 @@ let modulateComponent = OAIBaseComponent
   })
   modulateComponent
   .addInput(
-    modulateComponent.createInput('images', 'object', 'imageArray')
+    modulateComponent.createInput('images', 'object', 'image', {array: true})
       .set('title', 'Image')
       .set('description', 'The image(s) to extend')
       .setRequired(true)
+      .allowMultiple(true)
       .toOmniIO()
   )
   .addInput(
@@ -64,7 +65,7 @@ let modulateComponent = OAIBaseComponent
       .toOmniIO()
   )
   .addOutput(
-    modulateComponent.createOutput('images', 'object', 'imageArray')
+    modulateComponent.createOutput('images', 'object', 'image', {array: true})
       .set('title', 'Images')
       .set('description', 'The processed images')
       .toOmniIO()

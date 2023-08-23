@@ -25,11 +25,12 @@ let component = OAIBaseComponent
   })
 component
   .addInput(
-    component.createInput('images', 'object', 'imageArray')
+    component.createInput('images', 'object', 'image', {array: true})
       .set('description', 'The image(s) to extract from')
       .setRequired(true)
+      .allowMultiple(true)
       .setControl({
-        controlType: 'AlpineLabelComponent' 
+        controlType: 'AlpineLabelComponent'
       })
       .toOmniIO()
   )
@@ -62,7 +63,7 @@ component
       .toOmniIO()
   )
   .addOutput(
-    component.createOutput('images', 'object', 'imageArray')
+    component.createOutput('images', 'object', 'image', {array: true})
       .set('description', 'The processed images')
       .toOmniIO()
   )

@@ -14,11 +14,12 @@ let component = OAIBaseComponent
   .setMethod('X-CUSTOM')
 component
   .addInput(
-    component.createInput('images', 'object', 'imageArray')
+    component.createInput('images', 'object', 'image', {array: true})
       .set('description', 'The image(s) to extend')
       .setRequired(true)
+      .allowMultiple(true)
       .setControl({
-        controlType: 'AlpineLabelComponent' 
+        controlType: 'AlpineLabelComponent'
       })
       .toOmniIO()
   )
@@ -33,7 +34,7 @@ component
       .set('description', 'The color of the new pixels if method "background" was chosen.')
       .setDefault('#000000')
       .setControl({
-        controlType: 'AlpineColorComponent' 
+        controlType: 'AlpineColorComponent'
       })
       .toOmniIO()
   )
@@ -66,7 +67,7 @@ component
       .toOmniIO()
   )
   .addOutput(
-    component.createOutput('images', 'object', 'imageArray')
+    component.createOutput('images', 'object', 'image', {array: true})
       .set('description', 'The processed images')
       .toOmniIO()
   )

@@ -24,10 +24,11 @@ let metadataComponent = OAIBaseComponent.create(NS_OMNI, 'metadata')
   })
   metadataComponent
   .addInput(
-    metadataComponent.createInput('images', 'object', 'imageArray')
+    metadataComponent.createInput('images', 'object', 'image', {array: true})
       .set('title', 'Image')
       .set('description', 'The image(s) to inspect')
       .setRequired(true)
+      .allowMultiple(true)
       .toOmniIO()
   )
   .addOutput(

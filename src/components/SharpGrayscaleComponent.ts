@@ -25,10 +25,11 @@ let grayScaleComponent = OAIBaseComponent
   })
   grayScaleComponent
   .addInput(
-    grayScaleComponent.createInput('images', 'object', 'imageArray')
+    grayScaleComponent.createInput('images', 'object', 'image', {array: true})
       .set('title', 'Image')
       .set('description', 'The image(s) to grayscale')
       .setRequired(true)
+      .allowMultiple(true)
       .toOmniIO()
   )
   .addInput(
@@ -39,7 +40,7 @@ let grayScaleComponent = OAIBaseComponent
       .toOmniIO()
   )
   .addOutput(
-    grayScaleComponent.createOutput('images', 'object', 'imageArray')
+    grayScaleComponent.createOutput('images', 'object', 'image', {array: true})
       .set('title', 'Images')
       .set('description', 'The grayscaled images')
       .toOmniIO()

@@ -11764,9 +11764,9 @@ Object.defineProperty(Emittery, "listenerRemoved", {
   enumerable: true,
   configurable: false
 });
-var DEFAULT_LOG_LEVEL = 2;
 var OmniLogLevels = ((OmniLogLevels2) => {
   OmniLogLevels2[OmniLogLevels2["silent"] = Number.NEGATIVE_INFINITY] = "silent";
+  OmniLogLevels2[OmniLogLevels2["always"] = 0] = "always";
   OmniLogLevels2[OmniLogLevels2["fatal"] = 0] = "fatal";
   OmniLogLevels2[OmniLogLevels2["warning"] = 1] = "warning";
   OmniLogLevels2[OmniLogLevels2["normal"] = 2] = "normal";
@@ -11776,6 +11776,7 @@ var OmniLogLevels = ((OmniLogLevels2) => {
   OmniLogLevels2[OmniLogLevels2["verbose"] = Number.POSITIVE_INFINITY] = "verbose";
   return OmniLogLevels2;
 })(OmniLogLevels || {});
+var DEFAULT_LOG_LEVEL = 2;
 var _OmniLog = class _OmniLog2 {
   constructor() {
     this._status_priority = consola.create({ level: OmniLogLevels.verbose });
@@ -11787,6 +11788,7 @@ var _OmniLog = class _OmniLog2 {
       throw new Error("Log instance duplicate error");
     }
     consola.level = DEFAULT_LOG_LEVEL;
+    this._customLevel = /* @__PURE__ */ new Map();
     _OmniLog2._instance = this;
   }
   get level() {
@@ -11796,6 +11798,9 @@ var _OmniLog = class _OmniLog2 {
     this._status_priority.level = value < 0 ? value : OmniLogLevels.verbose;
     this._log = value >= 3 ? this.__log : this._void;
     consola.level = value;
+    if (value < 0) {
+      this._customLevel.forEach((e) => e = OmniLogLevels.silent);
+    }
   }
   get warn() {
     return consola.warn;
@@ -11824,6 +11829,9 @@ var _OmniLog = class _OmniLog2 {
   get log() {
     return this._log;
   }
+  get assert() {
+    return console.assert;
+  }
   status_start(msg) {
     this._status_priority.start(msg);
   }
@@ -11841,6 +11849,12 @@ var _OmniLog = class _OmniLog2 {
   }
   restoreConsoleLogger() {
     consola.restoreConsole();
+  }
+  setCustomLevel(id, level) {
+    this._customLevel.set(id, level);
+  }
+  getCustomLevel(id) {
+    return this._customLevel.get(id) ?? DEFAULT_LOG_LEVEL;
   }
 };
 _OmniLog._instance = new _OmniLog();
@@ -11872,11 +11886,7 @@ var Manager = class {
   async start() {
     for (const [id, child] of this.children) {
       omnilog.log(`child ${id} start`);
-      try {
-        await child.start?.();
-      } catch (e) {
-        omnilog.warn(`child ${id} failed to start with error: ${e}`);
-      }
+      await child.start?.();
     }
     omnilog.log("All children started");
     return true;
@@ -12181,7 +12191,7 @@ var App = class {
     this.verbose = loginstance.verbose;
     this.warn = loginstance.warn;
     this.events = new Emittery(
-      omnilog.level >= 4 ? { debug: { name: "app.events", enabled: true } } : void 0
+      omnilog.getCustomLevel("emittery") > OmniLogLevels.silent ? { debug: { name: "app.events", enabled: true } } : void 0
     );
   }
   // registers a service or integration
@@ -12278,17 +12288,21 @@ var BaseWorkflow = class _BaseWorkflow {
     this.setMeta(meta || null);
     this.setRete(null);
     this.setAPI(null);
-    this.langchain = null;
+    this.ui = {};
   }
   setMeta(meta) {
-    var _a, _b;
-    this.meta = meta ?? { name: "New Workflow", description: "No description.", pictureUrl: "omni.png" };
+    var _a, _b, _c, _d;
+    this.meta = meta ?? { name: "New Workflow", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
     this.meta.updated = Date.now();
     (_a = this.meta).created ?? (_a.created = Date.now());
     (_b = this.meta).tags ?? (_b.tags = []);
     this.meta.updated = Date.now();
+    (_c = this.meta).author || (_c.author = meta?.author || "Anonymous");
+    (_d = this.meta).help || (_d.help = meta?.help || "");
     this.meta.name = (0, import_insane.default)(this.meta.name, { allowedTags: [], allowedAttributes: {} });
     this.meta.description = (0, import_insane.default)(this.meta.description, { allowedTags: [], allowedAttributes: {} });
+    this.meta.author = (0, import_insane.default)(this.meta.author, { allowedTags: [], allowedAttributes: {} });
+    this.meta.help = (0, import_insane.default)(this.meta.help, { allowedTags: [], allowedAttributes: {} });
     return this;
   }
   setRete(rete) {
@@ -12301,6 +12315,11 @@ var BaseWorkflow = class _BaseWorkflow {
     this.meta.updated = Date.now();
     return this;
   }
+  setUI(ui) {
+    this.ui = ui ?? {};
+    this.meta.updated = Date.now();
+    return this;
+  }
   toJSON() {
     return {
       id: this.id,
@@ -12308,15 +12327,15 @@ var BaseWorkflow = class _BaseWorkflow {
       meta: this.meta,
       rete: this.rete,
       api: this.api,
-      langchain: this.langchain
+      ui: this.ui
     };
   }
   static fromJSON(json) {
     const result = new _BaseWorkflow(json.id, json.version);
-    result.langchain = json.langchain;
     result.setMeta(json.meta);
     result.setRete(json.rete);
     result.setAPI(json.api);
+    result.setUI(json.ui);
     return result;
   }
 };
@@ -12338,11 +12357,11 @@ var _Workflow = class _Workflow2 extends BaseWorkflow {
       id = json.id;
     }
     const result = new _Workflow2(id, json.version ?? "draft", { owner: json.owner || json.meta.owner, org: json.org });
-    result.langchain = json.langchain;
     result.publishedTo = json.publishedTo;
     result.setMeta(json.meta);
     result.setRete(json.rete);
     result.setAPI(json.api);
+    result.setUI(json.ui);
     if (json._rev) {
       result._rev = json._rev;
     }
@@ -12503,16 +12522,27 @@ var CustomSocket = class extends import_rete.Socket {
   // #v-endif
 };
 var CustomSocket_default = CustomSocket;
-var FileObjectSocket = class extends CustomSocket_default {
+var FileObjectSocket = class _FileObjectSocket extends CustomSocket_default {
+  compatibleWith(socket, noReverse) {
+    let cs = this;
+    if (cs.type) {
+      return ["string", "image", "audio", "document", "file"].includes(cs.type);
+    } else {
+      return socket instanceof _FileObjectSocket;
+    }
+  }
+  detectMimeType(ctx, value) {
+    return void 0;
+  }
   constructor(name, type, opts) {
     super(name, type, opts);
   }
-  // #v-ifdef MERCS_INCLUDE_CLIENT_WORKERS
   async persistObject(ctx, value, opts) {
-    if (value.ticket && value.url && !value.data) {
+    if ((value.ticket || value.fid) && value.url && !value.data) {
       return await Promise.resolve(value);
     }
     opts ?? (opts = {});
+    opts.mimeType ?? (opts.mimeType = this.detectMimeType?.(ctx, value));
     const finalOpts = { userId: ctx.userId, ...opts };
     return ctx.app.cdn.putTemp(value, finalOpts);
   }
@@ -12532,24 +12562,27 @@ var FileObjectSocket = class extends CustomSocket_default {
     }));
   }
   async _handleSingleObject(ctx, value, getValue = false) {
-    console.log("_handleSingleObject", value, this.format);
     if (!value) {
       return null;
-    }
-    if (value.fid && !value.data && (getValue && this.format === "base64")) {
+    } else if (value.fid && !value.data && (getValue && this.format?.startsWith("base64"))) {
       value = await ctx.app.cdn.get({ fid: value.fid }, null, this.format);
     } else if (this.isValidUrl(value)) {
       value = await this.persistObject(ctx, value.trim());
+    } else if (value?.startsWith?.("fid://") && !this.format?.startsWith("base64")) {
+      value = await ctx.app.cdn.get({ fid: value.split("://")[1] }, null, this.format);
     } else if (value && !value.url) {
       value = await this.persistObject(ctx, value);
     }
-    if (value && this.format === "base64") {
-      value = value.asBase64();
+    if (value && this.format?.startsWith("base64")) {
+      const addHeader = this.format?.includes("withHeader") === true;
+      value = value.asBase64(addHeader);
+    }
+    if (this.customSettings?.do_no_return_data) {
+      delete value.data;
     }
     return value;
   }
   async _handleObjectArray(ctx, value, getValue = false) {
-    console.log("_handleObjectArray", value, this.format);
     if (!value) {
       return null;
     }
@@ -12579,6 +12612,44 @@ var FileObjectSocket = class extends CustomSocket_default {
   }
 };
 var FileObjectSocket_default = FileObjectSocket;
+var DocumentSocket = class _DocumentSocket extends FileObjectSocket_default {
+  constructor(name, type, opts) {
+    super(name, type, opts);
+  }
+  // Try to guess if we have a plain text
+  mightBeUtf8PlainText(text2) {
+    const thresholdPercentage = 0.05;
+    const maxControlChars = text2.length * thresholdPercentage;
+    let controlCharCount = 0;
+    for (const char of text2) {
+      const charCode = char.charCodeAt(0);
+      if (charCode >= 0 && charCode <= 31 || charCode >= 127 && charCode <= 159) {
+        controlCharCount++;
+        if (controlCharCount > maxControlChars) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  detectMimeType(ctx, value) {
+    if (value && typeof value === "string") {
+      if (this.mightBeUtf8PlainText(value)) {
+        return "text/plain";
+      }
+    }
+    return void 0;
+  }
+  compatibleWith(socket, noReverse) {
+    let cs = this;
+    if (cs.type) {
+      return ["string", "text", "document"].includes(cs.type);
+    } else {
+      return socket instanceof _DocumentSocket;
+    }
+  }
+};
+var DocumentSocket_default = DocumentSocket;
 var PrimitiveSocket = class extends CustomSocket_default {
   constructor(name, type, opts) {
     super(name, type, opts);
@@ -12591,9 +12662,17 @@ var PrimitiveSocket = class extends CustomSocket_default {
   }
 };
 var PrimitiveSocket_default = PrimitiveSocket;
-var ImageSocket = class extends FileObjectSocket_default {
+var ImageSocket = class _ImageSocket extends FileObjectSocket_default {
   constructor(name, type, opts) {
     super(name, type, opts);
+  }
+  compatibleWith(socket, noReverse) {
+    let cs = this;
+    if (cs.type) {
+      return ["string", "file", "image"].includes(cs.type);
+    } else {
+      return socket instanceof _ImageSocket;
+    }
   }
 };
 var ImageSocket_default = ImageSocket;
@@ -12657,7 +12736,6 @@ var TextSocket = class _TextSocket extends CustomSocket_default {
       return this.array ? [value] : value;
     }
     if (this.array) {
-      debugger;
       if (!Array.isArray(value)) {
         if (typeof value === "string") {
           console.log("Settings", this.customSettings);
@@ -12706,12 +12784,13 @@ socketTypeMap.set("boolean", BooleanSocket_default);
 socketTypeMap.set("number", NumberSocket_default);
 socketTypeMap.set("integer", NumberSocket_default);
 socketTypeMap.set("float", NumberSocket_default);
+socketTypeMap.set("string", TextSocket_default);
 socketTypeMap.set("text", TextSocket_default);
 socketTypeMap.set("json", PrimitiveSocket_default);
 socketTypeMap.set("file", FileObjectSocket_default);
 socketTypeMap.set("image", ImageSocket_default);
 socketTypeMap.set("audio", FileObjectSocket_default);
-socketTypeMap.set("document", FileObjectSocket_default);
+socketTypeMap.set("document", DocumentSocket_default);
 var OmniComponentMacroTypes = /* @__PURE__ */ ((OmniComponentMacroTypes3) => {
   OmniComponentMacroTypes3["EXEC"] = "exec";
   OmniComponentMacroTypes3["BUILDER"] = "builder";
@@ -12878,6 +12957,10 @@ var ComponentComposer = class extends BaseComposer {
     this.data.macros = {};
     this.data.origin = "omnitool:Composer";
     this.data.customData = {};
+  }
+  dependsOn(dependsOn) {
+    this.data.dependsOn = dependsOn;
+    return this;
   }
   fromScratch() {
     this.data.apiNamespace = this.data.displayNamespace;
@@ -13076,14 +13159,14 @@ var OAIControl31 = class _OAIControl31 extends import_rete2.default.Control {
         });
       }
       if (typeof this.data.choices === "object") {
-        choices = this.data.choices;
-        if (choices.block) {
-          let list;
+        let choices2 = this.data.choices;
+        if (choices2.block) {
+          let list = ["Internal Error Fetching choices"];
           try {
             list = await globalThis.client.runBlock({
-              block: choices.block,
+              block: choices2.block,
               args: {},
-              cache: choices.cache
+              cache: choices2.cache ?? choices2.map.cache ?? "none"
             });
           } catch (ex) {
             console.error("Could not load choices for " + this.data.name + ": " + ex.message);
@@ -13093,7 +13176,7 @@ var OAIControl31 = class _OAIControl31 extends import_rete2.default.Control {
             console.error("Could not load choices for " + this.data.name + ": " + list.error.message);
             list = ["ERROR: " + list.error, this.data.default];
           }
-          const root = choices.map?.root;
+          const root = choices2.map?.root;
           if (root && list[root] != null && Array.isArray(list[root])) {
             list = list[root];
           }
@@ -13101,12 +13184,16 @@ var OAIControl31 = class _OAIControl31 extends import_rete2.default.Control {
             list = Array.from(Object.values(list));
           }
           this.data.choices = list.map((v2) => {
-            return {
-              value: v2[choices.map.value],
-              title: v2[choices.map.title],
-              description: v2[choices.map.description] || ""
-            };
-          }).filter((e) => e.value).sort((a, b2) => a[choices.map.title] > b2[choices.map.title] ? -1 : 1);
+            let e = { value: v2, title: v2, description: "" };
+            if (choices2.map?.value && choices2.map?.title) {
+              e = {
+                value: v2[choices2.map.value],
+                title: v2[choices2.map.title],
+                description: v2[choices2.map.description] || ""
+              };
+            }
+            return e;
+          }).filter((e) => e.value).sort((a, b2) => b2.title.localeCompare(a.title));
         }
       }
     }
@@ -13212,18 +13299,15 @@ var OAIBaseComponent = class extends Rete2.Component {
     var _a, _b, _c, _d;
     const data = (0, import_deepmerge.default)(config, patch ?? {});
     super(`${data.displayNamespace}.${data.displayOperationId}`);
+    this.errors = [];
     this.data = data;
     (_a = this.data).macros ?? (_a.macros = {});
     (_b = this.data).flags ?? (_b.flags = 0);
     for (const key in this.data.inputs) {
-      if (!key.startsWith("$")) {
-        (_c = this.data.inputs[key]).source ?? (_c.source = { sourceType: "requestBody" });
-      }
+      (_c = this.data.inputs[key]).source ?? (_c.source = { sourceType: "requestBody" });
     }
     for (const key in this.data.outputs) {
-      if (!key.startsWith("$")) {
-        (_d = this.data.outputs[key]).source ?? (_d.source = { sourceType: "responseBody" });
-      }
+      (_d = this.data.outputs[key]).source ?? (_d.source = { sourceType: "responseBody" });
     }
     this._validator = config.validator != null ? deserializeValidator(config.validator) : void 0;
   }
@@ -13285,6 +13369,9 @@ var OAIBaseComponent = class extends Rete2.Component {
   }
   get macros() {
     return this.data.macros;
+  }
+  get hash() {
+    return this.data.hash;
   }
   get controls() {
     return this.data.controls;
@@ -13474,7 +13561,7 @@ var writeToCdn = async (ctx, images, meta) => {
   return Promise.all(images.map(async (image) => {
     if (image.data != null) {
       await updateMetaData_default(image);
-      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId }, Object.assign({}, image.meta, meta || {}, { user: ctx.userId }));
+      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId, fileType: "image" }, Object.assign({}, image.meta, meta || {}, { user: ctx.userId }));
     } else {
       return image;
     }
@@ -13496,7 +13583,7 @@ var component = OAIBaseComponent.create(NS_OMNI, "rotate").fromScratch().set("de
   }
 });
 component.addInput(
-  component.createInput("images", "object", "imageArray").set("description", "The image(s) to rotate").setRequired(true).setControl({
+  component.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to rotate").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addInput(
@@ -13508,7 +13595,7 @@ component.addInput(
     controlType: "AlpineColorComponent"
   }).toOmniIO()
 ).addOutput(
-  component.createOutput("images", "object", "imageArray").set("description", "The rotated images").toOmniIO()
+  component.createOutput("images", "object", "image", { array: true }).set("description", "The rotated images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13536,7 +13623,7 @@ import sharp3 from "sharp";
 var NS_OMNI2 = "omnitool";
 var component2 = OAIBaseComponent.create(NS_OMNI2, "trim").fromScratch().set("description", "Trim pixels from all edges that contain values similar to the given background colour.").set("title", "Trim Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
 component2.addInput(
-  component2.createInput("images", "object", "imageArray").set("description", "The image(s) to operate on").setRequired(true).setControl({
+  component2.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addInput(
@@ -13553,7 +13640,7 @@ component2.addInput(
     step: 1
   }).toOmniIO()
 ).addOutput(
-  component2.createOutput("images", "object", "imageArray").set("description", "The processed images").toOmniIO()
+  component2.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13589,11 +13676,11 @@ var blurComponent = OAIBaseComponent.create(NS_OMNI3, "blur").fromScratch().set(
   }
 });
 blurComponent.addInput(
-  blurComponent.createInput("images", "object", "imageArray").set("title", "Image").set("description", "The image(s) to blur").setRequired(true).toOmniIO()
+  blurComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to blur").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(
   blurComponent.createInput("sigma", "number").set("description", "The sigma value for Gaussian BLur, 0 for fast blur, 0.3-1000 for Gaussian Blur Sigma").setDefault(0).setConstraints(0, 1e3).toOmniIO()
 ).addOutput(
-  blurComponent.createOutput("images", "object", "imageArray").set("title", "Images").set("description", "The blurred images").toOmniIO()
+  blurComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The blurred images").toOmniIO()
 );
 blurComponent.setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
@@ -13636,7 +13723,7 @@ var tintComponent = OAIBaseComponent.create(NS_OMNI4, "tint").fromScratch().set(
   }
 });
 tintComponent.addInput(
-  tintComponent.createInput("images", "object", "imageArray").set("title", "Image").set("description", "The image(s) to blur").setRequired(true).toOmniIO()
+  tintComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to blur").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(
   tintComponent.createInput("red", "number").set("description", "Tint the red channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
 ).addInput(
@@ -13644,7 +13731,7 @@ tintComponent.addInput(
 ).addInput(
   tintComponent.createInput("blue", "number").set("description", "Tint the blue channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
 ).addOutput(
-  tintComponent.createOutput("images", "object", "imageArray").set("description", "The tinted images").toOmniIO()
+  tintComponent.createOutput("images", "object", "image", { array: true }).set("description", "The tinted images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13681,11 +13768,11 @@ var grayScaleComponent = OAIBaseComponent.create(NS_OMNI5, "grayscale").fromScra
   }
 });
 grayScaleComponent.addInput(
-  grayScaleComponent.createInput("images", "object", "imageArray").set("title", "Image").set("description", "The image(s) to grayscale").setRequired(true).toOmniIO()
+  grayScaleComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to grayscale").setRequired(true).allowMultiple(true).toOmniIO()
 ).addInput(
   grayScaleComponent.createInput("grayscale", "boolean").set("title", "Grayscale").set("description", "Grayscale the Image").setDefault(true).toOmniIO()
 ).addOutput(
-  grayScaleComponent.createOutput("images", "object", "imageArray").set("title", "Images").set("description", "The grayscaled images").toOmniIO()
+  grayScaleComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The grayscaled images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13719,7 +13806,7 @@ var component3 = OAIBaseComponent.create(NS_OMNI6, "extract").fromScratch().set(
   }
 });
 component3.addInput(
-  component3.createInput("images", "object", "imageArray").set("description", "The image(s) to extract from").setRequired(true).setControl({
+  component3.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to extract from").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addInput(
@@ -13731,7 +13818,7 @@ component3.addInput(
 ).addInput(
   component3.createInput("height", "number").set("description", "Height").setDefault(512).setConstraints(0).toOmniIO()
 ).addOutput(
-  component3.createOutput("images", "object", "imageArray").set("description", "The processed images").toOmniIO()
+  component3.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13764,7 +13851,7 @@ var metadataComponent = OAIBaseComponent.create(NS_OMNI7, "metadata").fromScratc
   }
 });
 metadataComponent.addInput(
-  metadataComponent.createInput("images", "object", "imageArray").set("title", "Image").set("description", "The image(s) to inspect").setRequired(true).toOmniIO()
+  metadataComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to inspect").setRequired(true).allowMultiple(true).toOmniIO()
 ).addOutput(
   metadataComponent.createOutput("metadata", "object", "objectArray").set("title", "Metadata").set("description", "Metadata of the image(s)").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
@@ -13798,7 +13885,7 @@ var statsComponent = OAIBaseComponent.create(NS_OMNI8, "stats").fromScratch().se
   }
 });
 statsComponent.addInput(
-  statsComponent.createInput("images", "object", "imageArray").set("title", "Image").set("description", "The image(s) to inspect").setRequired(true).toOmniIO()
+  statsComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to inspect").allowMultiple(true).setRequired(true).toOmniIO()
 ).addOutput(
   statsComponent.createOutput("stats", "object", "objectArray").set("title", "Stats").set("description", "Pixel-derived image statistics for every channel in the image").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
@@ -13822,7 +13909,7 @@ import sharp10 from "sharp";
 var NS_OMNI9 = "sharp";
 var component4 = OAIBaseComponent.create(NS_OMNI9, "extend").fromScratch().set("description", "Extend / pad / extrude one or more edges of the image.").set("title", "Extend Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
 component4.addInput(
-  component4.createInput("images", "object", "imageArray").set("description", "The image(s) to extend").setRequired(true).setControl({
+  component4.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to extend").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addInput(
@@ -13840,7 +13927,7 @@ component4.addInput(
 ).addInput(
   component4.createInput("right", "integer").set("title", "Right").setDefault(0).setConstraints(0).toOmniIO()
 ).addOutput(
-  component4.createOutput("images", "object", "imageArray").set("description", "The processed images").toOmniIO()
+  component4.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13875,7 +13962,7 @@ var modulateComponent = OAIBaseComponent.create(NS_OMNI10, "modulate").fromScrat
   }
 });
 modulateComponent.addInput(
-  modulateComponent.createInput("images", "object", "imageArray").set("title", "Image").set("description", "The image(s) to extend").setRequired(true).toOmniIO()
+  modulateComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to extend").setRequired(true).allowMultiple(true).toOmniIO()
 ).addInput(
   modulateComponent.createInput("brightness", "float").set("title", "Brightness").set("description", "The brightness multiplier.").setDefault(1).setConstraints(0).toOmniIO()
 ).addInput(
@@ -13885,7 +13972,7 @@ modulateComponent.addInput(
 ).addInput(
   modulateComponent.createInput("lightness", "float").set("title", "Lightness").set("description", "The lightness addend.").setDefault(0).setConstraints(0).toOmniIO()
 ).addOutput(
-  modulateComponent.createOutput("images", "object", "imageArray").set("title", "Images").set("description", "The processed images").toOmniIO()
+  modulateComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13921,11 +14008,11 @@ var extractChannelComponent = OAIBaseComponent.create(NS_OMNI11, "extractChannel
   }
 });
 extractChannelComponent.addInput(
-  extractChannelComponent.createInput("images", "object", "imageArray").set("title", "Image").set("description", "The image(s) to operate on").setRequired(true).toOmniIO()
+  extractChannelComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to operate on").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(
   extractChannelComponent.createInput("channel", "string").set("title", "Channel").set("description", "The channel to extract.").setDefault("red").setChoices(["red", "green", "blue", "alpha"]).toOmniIO()
 ).addOutput(
-  extractChannelComponent.createOutput("images", "object", "imageArray").set("title", "Images").set("description", "The processed images").toOmniIO()
+  extractChannelComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13947,11 +14034,11 @@ import sharp13 from "sharp";
 var NS_OMNI12 = "sharp";
 var component5 = OAIBaseComponent.create(NS_OMNI12, "removeAlpha").fromScratch().set("description", "Remove alpha channel from an image, if any.").set("title", "Remove Alpha (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
 component5.addInput(
-  component5.createInput("images", "object", "imageArray").set("description", "The image(s) to operate on").setRequired(true).setControl({
+  component5.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addOutput(
-  component5.createOutput("images", "object", "imageArray").set("description", "The processed images").toOmniIO()
+  component5.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -13983,11 +14070,11 @@ var ensureAlphaComponent = OAIBaseComponent.create(NS_OMNI13, "ensureAlpha").fro
   }
 });
 ensureAlphaComponent.addInput(
-  ensureAlphaComponent.createInput("images", "object", "imageArray").set("title", "Image").set("description", "The image(s) to operate on").setRequired(true).toOmniIO()
+  ensureAlphaComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).toOmniIO()
 ).addInput(
   ensureAlphaComponent.createInput("alpha", "number").set("title", "Alpha").set("description", "Alpha transparency level (0=fully-transparent, 1=fully-opaque).").setDefault(1).setConstraints(0, 1, 0.1).toOmniIO()
 ).addOutput(
-  ensureAlphaComponent.createOutput("images", "object", "imageArray").set("title", "Images").set("description", "The processed images").toOmniIO()
+  ensureAlphaComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
@@ -14009,7 +14096,7 @@ import sharp15 from "sharp";
 var NS_OMNI14 = "sharp";
 var resizeComponent = OAIBaseComponent.create(NS_OMNI14, "resize").fromScratch().set("title", "Resize Image (Sharp)").set("description", "Resize the image to given width and height using various options.").setMethod("X-CUSTOM");
 resizeComponent.addInput(
-  resizeComponent.createInput("images", "object", "imageArray").set("title", "Input Images").set("description", "Images to resize.").setRequired(true).toOmniIO()
+  resizeComponent.createInput("images", "object", "image", { array: true }).set("title", "Input Images").set("description", "Images to resize.").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(
   resizeComponent.createInput("width", "number").set("title", "Width").setRequired(true).setConstraints(1, 8192).toOmniIO()
 ).addInput(
@@ -14027,7 +14114,7 @@ resizeComponent.addInput(
 ).addInput(
   resizeComponent.createInput("fastShrinkOnLoad", "boolean").set("title", "Fast Shrink On Load").setDefault(true).set("description", "Take greater advantage of the JPEG and WebP shrink-on-load feature.").toOmniIO()
 ).addOutput(
-  resizeComponent.createOutput("images", "object", "imageArray").set("title", "Output Images").set("description", "The resized images.").toOmniIO()
+  resizeComponent.createOutput("images", "object", "image", { array: true }).set("title", "Output Images").set("description", "The resized images.").toOmniIO()
 ).setMeta({
   source: {
     summary: "Resize the image to the given dimensions with various options for scaling, fitting, and cropping.",
@@ -14089,9 +14176,9 @@ var component6 = OAIBaseComponent.create(NS_OMNI15, "composite").fromScratch().s
   }
 });
 component6.addInput(
-  component6.createInput("images", "array", "imageArray").set("description", "Images to be processed").setRequired(true).toOmniIO()
+  component6.createInput("images", "array", "image", { array: true }).set("description", "Images to be processed").setRequired(true).allowMultiple(true).toOmniIO()
 ).addInput(
-  component6.createInput("compositeImages", "array", "imageArray").set("description", "Images to be composited").setRequired(true).toOmniIO()
+  component6.createInput("compositeImages", "array", "image", { array: true }).set("description", "Images to be composited").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(
   component6.createInput("blend", "string").set("description", "How to blend this image with the image below.").setChoices(["clear", "source", "over", "in", "out", "atop", "dest", "dest-over", "dest-in", "dest-out", "dest-atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "colour-dodge", "color-dodge", "colour-burn", "color-burn", "hard-light", "soft-light", "difference", "exclusion"], "clear").toOmniIO()
 ).addInput(
@@ -14107,7 +14194,7 @@ component6.addInput(
 ).addInput(
   component6.createInput("density", "number").set("description", "Number representing the DPI for vector overlay image.").setDefault(72).setConstraints(1, 600, 1).toOmniIO()
 ).addOutput(
-  component6.createOutput("images", "object", "imageArray").set("description", "The processed images").toOmniIO()
+  component6.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images && payload.compositeImages) {
     let images = await Promise.all(payload.images.map((image) => {

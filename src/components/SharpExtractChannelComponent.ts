@@ -25,9 +25,10 @@ let extractChannelComponent = OAIBaseComponent
   })
   extractChannelComponent
   .addInput(
-    extractChannelComponent.createInput('images', 'object', 'imageArray')
+    extractChannelComponent.createInput('images', 'object', 'image', {array: true})
       .set('title', 'Image')
       .set('description', 'The image(s) to operate on')
+      .allowMultiple(true)
       .setRequired(true)
       .toOmniIO()
   )
@@ -40,7 +41,7 @@ let extractChannelComponent = OAIBaseComponent
       .toOmniIO()
   )
   .addOutput(
-    extractChannelComponent.createOutput('images', 'object', 'imageArray')
+    extractChannelComponent.createOutput('images', 'object', 'image', {array: true})
       .set('title', 'Images')
       .set('description', 'The processed images')
       .toOmniIO()

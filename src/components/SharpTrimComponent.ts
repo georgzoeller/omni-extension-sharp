@@ -13,11 +13,12 @@ let component = OAIBaseComponent
   .setMethod('X-CUSTOM')
 component
   .addInput(
-    component.createInput('images', 'object', 'imageArray')
+    component.createInput('images', 'object', 'image', {array: true})
       .set('description', 'The image(s) to operate on')
       .setRequired(true)
+      .allowMultiple(true)
       .setControl({
-        controlType: 'AlpineLabelComponent' 
+        controlType: 'AlpineLabelComponent'
       })
       .toOmniIO()
   )
@@ -26,7 +27,7 @@ component
       .set('description', 'Specify the mode for trimming: Top left pixel or Background color.')
       .setChoices(['Top left Pixel', 'Background color'], 'Top left Pixel')
       .setControl({
-        controlType: 'AlpineSelectComponent' 
+        controlType: 'AlpineSelectComponent'
       })
       .toOmniIO()
   )
@@ -35,7 +36,7 @@ component
       .set('description', 'Background colour to trim, used when trim mode is Background color.')
       .setDefault('#000000')
       .setControl({
-        controlType: 'AlpineColorComponent' 
+        controlType: 'AlpineColorComponent'
       })
       .toOmniIO()
   )
@@ -50,7 +51,7 @@ component
       .toOmniIO()
   )
   .addOutput(
-    component.createOutput('images', 'object', 'imageArray')
+    component.createOutput('images', 'object', 'image', {array: true})
       .set('description', 'The processed images')
       .toOmniIO()
   )

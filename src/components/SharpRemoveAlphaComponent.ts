@@ -14,16 +14,17 @@ let component = OAIBaseComponent
   .setMethod('X-CUSTOM')
 component
   .addInput(
-    component.createInput('images', 'object', 'imageArray')
+    component.createInput('images', 'object', 'image', {array: true})
       .set('description', 'The image(s) to operate on')
       .setRequired(true)
+      .allowMultiple(true)
       .setControl({
-        controlType: 'AlpineLabelComponent' 
+        controlType: 'AlpineLabelComponent'
       })
       .toOmniIO()
   )
   .addOutput(
-    component.createOutput('images', 'object', 'imageArray')
+    component.createOutput('images', 'object', 'image', {array: true})
       .set('description', 'The processed images')
       .toOmniIO()
   )

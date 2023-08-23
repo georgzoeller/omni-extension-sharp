@@ -25,9 +25,10 @@ let statsComponent = OAIBaseComponent
   })
   statsComponent
   .addInput(
-    statsComponent.createInput('images', 'object', 'imageArray')
+    statsComponent.createInput('images', 'object', 'image', {array: true})
       .set('title', 'Image')
       .set('description', 'The image(s) to inspect')
+      .allowMultiple(true)
       .setRequired(true)
       .toOmniIO()
   )

@@ -25,9 +25,10 @@ let tintComponent = OAIBaseComponent
   })
   tintComponent
   .addInput(
-    tintComponent.createInput('images', 'object', 'imageArray')
+    tintComponent.createInput('images', 'object', 'image', {array: true})
       .set('title', 'Image')
       .set('description', 'The image(s) to blur')
+      .allowMultiple(true)
       .setRequired(true)
       .toOmniIO()
   )
@@ -53,7 +54,7 @@ let tintComponent = OAIBaseComponent
       .toOmniIO()
   )
   .addOutput(
-    tintComponent.createOutput('images', 'object', 'imageArray')
+    tintComponent.createOutput('images', 'object', 'image', {array: true})
       .set('description', 'The tinted images')
       .toOmniIO()
   )

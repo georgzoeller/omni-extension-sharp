@@ -25,10 +25,11 @@ let ensureAlphaComponent = OAIBaseComponent
   })
   ensureAlphaComponent
   .addInput(
-    ensureAlphaComponent.createInput('images', 'object', 'imageArray')
+    ensureAlphaComponent.createInput('images', 'object', 'image', {array: true})
       .set('title', 'Image')
       .set('description', 'The image(s) to operate on')
       .setRequired(true)
+      .allowMultiple(true)
       .toOmniIO()
   )
   .addInput(
@@ -40,7 +41,7 @@ let ensureAlphaComponent = OAIBaseComponent
       .toOmniIO()
   )
   .addOutput(
-    ensureAlphaComponent.createOutput('images', 'object', 'imageArray')
+    ensureAlphaComponent.createOutput('images', 'object', 'image', {array: true})
       .set('title', 'Images')
       .set('description', 'The processed images')
       .toOmniIO()

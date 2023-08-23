@@ -10,7 +10,7 @@ const writeToCdn = async (ctx: any, images: any, meta?:any) => {
     if (image.data != null)
     {
       await updateMetaData(image)
-      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId }, Object.assign({}, image.meta, meta || {}, {user: ctx.userId}));
+      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId, fileType: 'image' }, Object.assign({}, image.meta, meta || {}, {user: ctx.userId}));
     }
     else
     {
