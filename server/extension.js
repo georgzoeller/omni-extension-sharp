@@ -12164,6 +12164,50 @@ var { parse: $parse, stringify: $stringify } = JSON;
 var options = { json: true, lossy: true };
 var parse = (str) => deserialize($parse(str));
 var stringify = (any) => $stringify(serialize(any, options));
+var Settings = class {
+  constructor(scope) {
+    this.settings = /* @__PURE__ */ new Map();
+    this.scope = scope;
+  }
+  bindStorage(storage) {
+    this.settings = storage;
+  }
+  // Adds a setting to this system.
+  add(setting) {
+    if (this.settings.has(setting.key)) {
+      omnilog.warn(`Setting ${setting.key} already exists, doing nothing...`);
+      return this;
+    }
+    this.settings.set(setting.key, setting);
+    return this;
+  }
+  // Retrieves a setting by its key.
+  get(key) {
+    return this.settings.get(key);
+  }
+  // Updates a setting's value and validates it.
+  update(key, newValue) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = newValue;
+    }
+  }
+  // Resets a specific setting to its default value.
+  reset(key) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = setting.defaultValue;
+    }
+  }
+  // Resets all settings to their default values.
+  resetAll() {
+    if (this.settings) {
+      for (const s3 of this.settings.values()) {
+        s3.value = s3.defaultValue;
+      }
+    }
+  }
+};
 var STATE = /* @__PURE__ */ ((STATE2) => {
   STATE2[STATE2["CREATED"] = 0] = "CREATED";
   STATE2[STATE2["CONFIGURED"] = 1] = "CONFIGURED";
@@ -12184,6 +12228,7 @@ var App = class {
     this.services = new ServiceManager(this);
     this.integrations = new (opts.integrationsManagerType || IntegrationsManager)(this);
     const loginstance = this.logger.createWithTag(id);
+    this.settings = new Settings();
     this.info = loginstance.info;
     this.success = loginstance.success;
     this.debug = loginstance.debug;
@@ -12283,22 +12328,24 @@ var App = class {
 App.STATES = STATE;
 var BaseWorkflow = class _BaseWorkflow {
   constructor(id, version, meta) {
-    this.id = id;
-    this.version = version;
-    this.setMeta(meta || null);
+    this.id = id || "";
+    this.version = version || "draft";
+    this.setMeta(meta);
     this.setRete(null);
     this.setAPI(null);
     this.ui = {};
   }
   setMeta(meta) {
     var _a, _b, _c, _d;
-    this.meta = meta ?? { name: "New Workflow", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    meta = JSON.parse(JSON.stringify(meta || {}));
+    meta = meta || { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    this.meta = meta;
     this.meta.updated = Date.now();
     (_a = this.meta).created ?? (_a.created = Date.now());
     (_b = this.meta).tags ?? (_b.tags = []);
     this.meta.updated = Date.now();
-    (_c = this.meta).author || (_c.author = meta?.author || "Anonymous");
-    (_d = this.meta).help || (_d.help = meta?.help || "");
+    (_c = this.meta).author || (_c.author = "Anonymous");
+    (_d = this.meta).help || (_d.help = "");
     this.meta.name = (0, import_insane.default)(this.meta.name, { allowedTags: [], allowedAttributes: {} });
     this.meta.description = (0, import_insane.default)(this.meta.description, { allowedTags: [], allowedAttributes: {} });
     this.meta.author = (0, import_insane.default)(this.meta.author, { allowedTags: [], allowedAttributes: {} });
@@ -12319,6 +12366,9 @@ var BaseWorkflow = class _BaseWorkflow {
     this.ui = ui ?? {};
     this.meta.updated = Date.now();
     return this;
+  }
+  get isBlank() {
+    return (this?.rete?.nodes ?? []).length === 0;
   }
   toJSON() {
     return {
@@ -12349,7 +12399,14 @@ var _Workflow = class _Workflow2 extends BaseWorkflow {
     this.publishedTo = [];
   }
   toJSON() {
-    return { ...super.toJSON(), _id: this._id, _rev: this._rev, owner: this.owner, org: this.org, publishedTo: this.publishedTo };
+    return {
+      ...super.toJSON(),
+      _id: this._id,
+      _rev: this._rev,
+      owner: this.owner,
+      org: this.org,
+      publishedTo: this.publishedTo
+    };
   }
   static fromJSON(json) {
     let id = json._id?.replace("wf:", "") || json.id;
@@ -12416,8 +12473,8 @@ var _User = class _User2 extends DBObject {
     this.tier = null;
     this.password = null;
     this.salt = null;
-    this.token = null;
     this.tags = [];
+    this.settings = new Settings(this.id);
   }
   isAdmin() {
     return this.tags.some((tag) => tag === "admin");
@@ -12439,7 +12496,6 @@ var _User = class _User2 extends DBObject {
     result.tier = json.tier;
     result.password = json.password;
     result.salt = json.salt;
-    result.token = json.token;
     result.tags = json.tags;
     return result;
   }
@@ -12543,7 +12599,7 @@ var FileObjectSocket = class _FileObjectSocket extends CustomSocket_default {
     }
     opts ?? (opts = {});
     opts.mimeType ?? (opts.mimeType = this.detectMimeType?.(ctx, value));
-    const finalOpts = { userId: ctx.userId, ...opts };
+    const finalOpts = { userId: ctx.userId, jobId: ctx.jobId, ...opts };
     return ctx.app.cdn.putTemp(value, finalOpts);
   }
   async persistObjects(ctx, value, opts) {
@@ -12644,9 +12700,8 @@ var DocumentSocket = class _DocumentSocket extends FileObjectSocket_default {
     let cs = this;
     if (cs.type) {
       return ["string", "text", "document"].includes(cs.type);
-    } else {
-      return socket instanceof _DocumentSocket;
     }
+    return socket instanceof _DocumentSocket;
   }
 };
 var DocumentSocket_default = DocumentSocket;
@@ -12655,10 +12710,13 @@ var PrimitiveSocket = class extends CustomSocket_default {
     super(name, type, opts);
   }
   async handleInput(ctx, value) {
-    return Promise.resolve(value);
+    if (Array.isArray(value)) {
+      value = value[0];
+    }
+    return value;
   }
   async handleOutput(ctx, value) {
-    return Promise.resolve(value);
+    return this.handleInput(ctx, value);
   }
 };
 var PrimitiveSocket_default = PrimitiveSocket;
@@ -12670,9 +12728,8 @@ var ImageSocket = class _ImageSocket extends FileObjectSocket_default {
     let cs = this;
     if (cs.type) {
       return ["string", "file", "image"].includes(cs.type);
-    } else {
-      return socket instanceof _ImageSocket;
     }
+    return socket instanceof _ImageSocket;
   }
 };
 var ImageSocket_default = ImageSocket;
@@ -12681,17 +12738,25 @@ var NumberSocket = class extends CustomSocket_default {
     super(name, type, opts);
   }
   async handleInput(ctx, value) {
-    if (value === "inf") {
-      return Promise.resolve(Infinity);
-    } else if (value === "-inf") {
-      return Promise.resolve(-Infinity);
-    } else if (value === "nan") {
-      return Promise.resolve(NaN);
+    if (Array.isArray(value)) {
+      value = value[0];
     }
-    return Promise.resolve(value);
+    if (!value) {
+      return 0;
+    }
+    if (value === "inf") {
+      return Infinity;
+    }
+    if (value === "-inf") {
+      return -Infinity;
+    }
+    if (value === "nan") {
+      return NaN;
+    }
+    return Number(value);
   }
   async handleOutput(ctx, value) {
-    return await this.handleOutput(ctx, value);
+    return this.handleInput(ctx, value);
   }
 };
 var NumberSocket_default = NumberSocket;
@@ -12732,35 +12797,18 @@ var TextSocket = class _TextSocket extends CustomSocket_default {
     return JSON.stringify(value, null, 2);
   }
   async handleInput(ctx, value) {
-    if (value == null) {
-      return this.array ? [value] : value;
+    const array_separator = this.customSettings?.array_separator ?? "\n";
+    if (this.array && typeof value === "string") {
+      value = value.split(array_separator);
     }
-    if (this.array) {
-      if (!Array.isArray(value)) {
-        if (typeof value === "string") {
-          console.log("Settings", this.customSettings);
-          value = value.split(this.customSettings?.array_separator ?? "\n");
-          if (this.customSettings?.filter_empty) {
-            value = value.filter((v2) => v2 != null && v2 !== "");
-          }
-        } else {
-          value = [this.convertSingleValue(value)];
-        }
-      } else {
-        value = value.map((v2) => this.convertSingleValue(v2));
-      }
-    } else {
-      if (Array.isArray(value)) {
-        value = value.map((v2) => this.convertSingleValue(v2));
-        if (this.customSettings?.filter_empty) {
-          value = value.filter((v2) => v2 != null && v2 !== "");
-        }
-        value = value.join(this.customSettings?.array_separator ?? "\n");
-      } else {
-        value = this.convertSingleValue(value);
-      }
+    if (!Array.isArray(value)) {
+      value = [value];
     }
-    return Promise.resolve(value);
+    value = value.map(this.convertSingleValue.bind(this));
+    if (this.customSettings?.filter_empty) {
+      value = value.filter((v2) => v2);
+    }
+    return this.array ? value : value.join(array_separator);
   }
   async handleOutput(ctx, value) {
     return this.handleInput(ctx, value);
@@ -12772,13 +12820,31 @@ var BooleanSocket = class extends CustomSocket_default {
     super(name, type, opts);
   }
   async handleInput(ctx, value) {
+    if (Array.isArray(value)) {
+      value = value[0];
+    }
     return !!value;
   }
   async handleOutput(ctx, value) {
-    return Promise.resolve(value);
+    return this.handleInput(ctx, value);
   }
 };
 var BooleanSocket_default = BooleanSocket;
+var AnySocket = class extends CustomSocket_default {
+  constructor(name, type, opts) {
+    super(name, type, opts);
+  }
+  compatibleWith(socket, noReverse) {
+    return true;
+  }
+  async handleInput(ctx, value) {
+    return value;
+  }
+  async handleOutput(ctx, value) {
+    return value;
+  }
+};
+var AnySocket_default = AnySocket;
 var socketTypeMap = /* @__PURE__ */ new Map();
 socketTypeMap.set("boolean", BooleanSocket_default);
 socketTypeMap.set("number", NumberSocket_default);
@@ -12791,12 +12857,30 @@ socketTypeMap.set("file", FileObjectSocket_default);
 socketTypeMap.set("image", ImageSocket_default);
 socketTypeMap.set("audio", FileObjectSocket_default);
 socketTypeMap.set("document", DocumentSocket_default);
+socketTypeMap.set("any", AnySocket_default);
 var OmniComponentMacroTypes = /* @__PURE__ */ ((OmniComponentMacroTypes3) => {
   OmniComponentMacroTypes3["EXEC"] = "exec";
   OmniComponentMacroTypes3["BUILDER"] = "builder";
   OmniComponentMacroTypes3["ON_SAVE"] = "save";
   return OmniComponentMacroTypes3;
 })(OmniComponentMacroTypes || {});
+function SimplifyChoices(choices) {
+  if (Array.isArray(choices)) {
+    if (choices.length === 0) {
+      return [];
+    }
+    if (typeof choices[0] === "string") {
+      return choices.map((v2) => ({ title: v2, value: v2 }));
+    }
+    if (typeof choices[0] === "object" && "title" in choices[0] && "value" in choices[0]) {
+      return choices;
+    }
+  }
+  if (typeof choices === "object" && "block" in choices && "map" in choices) {
+    return choices;
+  }
+  return choices;
+}
 var IOComposer = class {
   constructor() {
     this.data = {};
@@ -12849,21 +12933,11 @@ var IOComposer = class {
     return this;
   }
   setChoices(choices, defaultValue) {
-    if (Array.isArray(choices)) {
-      if (choices.length > 0) {
-        if (typeof choices[0] === "string") {
-          choices = choices.map((v2) => ({ title: v2, value: v2 }));
-        }
-        this.data.choices = choices;
-      } else {
-        this.data.choices = [{ title: "(default)", value: defaultValue ?? "" }];
-      }
-    } else if (typeof choices === "object") {
-      if (choices.hasOwnProperty("block")) {
-        this.data.choices = choices;
-      }
-    }
     this.data.default = defaultValue;
+    this.data.choices = SimplifyChoices(choices);
+    if (!this.data.choices) {
+      this.data.choices = [{ title: "(default)", value: defaultValue ?? "" }];
+    }
     return this;
   }
   setCustom(key, value) {
@@ -12907,21 +12981,11 @@ var ControlComposer = class {
     return this;
   }
   setChoices(choices, defaultValue) {
-    if (Array.isArray(choices)) {
-      if (choices.length > 0) {
-        if (typeof choices[0] === "string") {
-          choices = choices.map((v2) => ({ title: v2, value: v2 }));
-        }
-        this.data.choices = choices;
-      } else {
-        this.data.choices = [{ title: "(default)", value: defaultValue ?? "" }];
-      }
-    } else if (typeof choices === "object") {
-      if (choices.hasOwnProperty("block")) {
-        this.data.choices = choices;
-      }
-    }
     this.data.default = defaultValue;
+    this.data.choices = SimplifyChoices(choices);
+    if (!this.data.choices) {
+      this.data.choices = [{ title: "(default)", value: defaultValue ?? "" }];
+    }
     return this;
   }
   setReadonly(readonly) {
@@ -13147,7 +13211,7 @@ var OAIControl31 = class _OAIControl31 extends import_rete2.default.Control {
     this.component = control;
   }
   async initChoices() {
-    if (this.data.choices != null) {
+    if (this.data.choices) {
       let choices = this.data.choices;
       if (Array.isArray(choices)) {
         this.data.choices = choices.map(function(v2) {
@@ -13296,18 +13360,19 @@ var deserializeValidator = function(jsString) {
 var OAIBaseComponent = class extends Rete2.Component {
   // #v-endif
   constructor(config, patch) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f;
     const data = (0, import_deepmerge.default)(config, patch ?? {});
     super(`${data.displayNamespace}.${data.displayOperationId}`);
-    this.errors = [];
     this.data = data;
     (_a = this.data).macros ?? (_a.macros = {});
     (_b = this.data).flags ?? (_b.flags = 0);
+    (_c = this.data).errors ?? (_c.errors = []);
+    (_d = this.data).enabled ?? (_d.enabled = true);
     for (const key in this.data.inputs) {
-      (_c = this.data.inputs[key]).source ?? (_c.source = { sourceType: "requestBody" });
+      (_e = this.data.inputs[key]).source ?? (_e.source = { sourceType: "requestBody" });
     }
     for (const key in this.data.outputs) {
-      (_d = this.data.outputs[key]).source ?? (_d.source = { sourceType: "responseBody" });
+      (_f = this.data.outputs[key]).source ?? (_f.source = { sourceType: "responseBody" });
     }
     this._validator = config.validator != null ? deserializeValidator(config.validator) : void 0;
   }
@@ -13349,6 +13414,9 @@ var OAIBaseComponent = class extends Rete2.Component {
   get apiKey() {
     return `${this.data.apiNamespace}.${this.data.apiOperationId}`;
   }
+  get apiNamespace() {
+    return this.data.apiNamespace;
+  }
   get renderTemplate() {
     return this.data.renderTemplate || "default";
   }
@@ -13375,6 +13443,12 @@ var OAIBaseComponent = class extends Rete2.Component {
   }
   get controls() {
     return this.data.controls;
+  }
+  get enabled() {
+    return this.data.enabled ?? true;
+  }
+  set enabled(enabled) {
+    this.data.enabled = enabled;
   }
   setType(type) {
     this.data.type = type;
@@ -13482,7 +13556,7 @@ var OAIBaseComponent = class extends Rete2.Component {
       console.warn("Null Object Type");
     }
     const customSocket = obj.customSocket;
-    if (customSocket && ["imageArray", "image", "document", "documentArray", "audio", "audioArray", "mediaObject", "mediaObjectArray"].includes(customSocket)) {
+    if (customSocket && ["imageArray", "image", "document", "documentArray", "audio", "file", "audioArray", "fileArray"].includes(customSocket)) {
       return "AlpineLabelComponent";
     }
     if (objType === "number" || objType === "integer" || objType === "float") {
@@ -13561,7 +13635,7 @@ var writeToCdn = async (ctx, images, meta) => {
   return Promise.all(images.map(async (image) => {
     if (image.data != null) {
       await updateMetaData_default(image);
-      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId, fileType: "image" }, Object.assign({}, image.meta, meta || {}, { user: ctx.userId }));
+      return ctx.app.cdn.putTemp(image.data, { mimeType: image.mimeType, userId: ctx.userId, jobId: ctx.jobId, fileType: "image" }, Object.assign({}, image.meta, meta || {}, { user: ctx.userId }));
     } else {
       return image;
     }
