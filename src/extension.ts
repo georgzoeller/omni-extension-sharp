@@ -13,8 +13,9 @@ import SharpRemoveAlphaComponent from "./components/SharpRemoveAlphaComponent";
 import SharpEnsureAlphaComponent from "./components/SharpEnsureAlphaComponent";
 import SharpResizeComponent from "./components/SharpResizeComponent";
 import SharpCompositeComponent from "./components/SharpCompositeComponent";
+import SharpNegateComponent from "./components/SharpNegateComponent";
 
-let components = [SharpRotationComponent, SharpTrimComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent, SharpCompositeComponent];
+let components = [SharpRotationComponent, SharpTrimComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent, SharpCompositeComponent, SharpNegateComponent];
 
 export default {
   createComponents: () => ({

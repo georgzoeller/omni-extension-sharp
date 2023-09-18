@@ -664,9 +664,9 @@ var require_jsonata = __commonJS({
           const deltaWeeks = function(start, end) {
             return (end - start) / (millisInADay * 7) + 1;
           };
-          const getDateTimeFragment = (date, component7) => {
+          const getDateTimeFragment = (date, component8) => {
             let componentValue;
-            switch (component7) {
+            switch (component8) {
               case "Y":
                 componentValue = date.getUTCFullYear();
                 break;
@@ -9547,11 +9547,11 @@ var require_rete_common = __commonJS2({
         }
       }, {
         key: "register",
-        value: function register(component7) {
-          if (this.components.has(component7.name))
-            throw new Error("Component ".concat(component7.name, " already registered"));
-          this.components.set(component7.name, component7);
-          this.trigger("componentregister", component7);
+        value: function register(component8) {
+          if (this.components.has(component8.name))
+            throw new Error("Component ".concat(component8.name, " already registered"));
+          this.components.set(component8.name, component8);
+          this.trigger("componentregister", component8);
         }
       }, {
         key: "destroy",
@@ -9964,7 +9964,7 @@ var require_rete_common = __commonJS2({
     var NodeView = /* @__PURE__ */ function(_Emitter) {
       _inherits(NodeView2, _Emitter);
       var _super = _createSuper(NodeView2);
-      function NodeView2(node, component7, emitter) {
+      function NodeView2(node, component8, emitter) {
         var _this;
         _classCallCheck(this, NodeView2);
         _this = _super.call(this, emitter);
@@ -9976,7 +9976,7 @@ var require_rete_common = __commonJS2({
         _defineProperty(_assertThisInitialized(_this), "_startPosition", []);
         _defineProperty(_assertThisInitialized(_this), "_drag", void 0);
         _this.node = node;
-        _this.component = component7;
+        _this.component = component8;
         _this.el = document.createElement("div");
         _this.el.style.position = "absolute";
         _this.el.addEventListener("contextmenu", function(e) {
@@ -9992,7 +9992,7 @@ var require_rete_common = __commonJS2({
         _this.trigger("rendernode", {
           el: _this.el,
           node,
-          component: component7.data,
+          component: component8.data,
           bindSocket: _this.bindSocket.bind(_assertThisInitialized(_this)),
           bindControl: _this.bindControl.bind(_assertThisInitialized(_this))
         });
@@ -10157,10 +10157,10 @@ var require_rete_common = __commonJS2({
       _createClass(EditorView2, [{
         key: "addNode",
         value: function addNode(node) {
-          var component7 = this.components.get(node.name);
-          if (!component7)
+          var component8 = this.components.get(node.name);
+          if (!component8)
             throw new Error("Component ".concat(node.name, " not found"));
-          var nodeView = new NodeView(node, component7, this);
+          var nodeView = new NodeView(node, component8, this);
           this.nodes.set(node, nodeView);
           this.area.appendChild(nodeView.el);
         }
@@ -10424,16 +10424,16 @@ var require_rete_common = __commonJS2({
       }, {
         key: "getComponent",
         value: function getComponent(name) {
-          var component7 = this.components.get(name);
-          if (!component7)
+          var component8 = this.components.get(name);
+          if (!component8)
             throw "Component ".concat(name, " not found");
-          return component7;
+          return component8;
         }
       }, {
         key: "register",
-        value: function register(component7) {
-          _get(_getPrototypeOf(NodeEditor2.prototype), "register", this).call(this, component7);
-          component7.editor = this;
+        value: function register(component8) {
+          _get(_getPrototypeOf(NodeEditor2.prototype), "register", this).call(this, component8);
+          component8.editor = this;
         }
       }, {
         key: "clear",
@@ -10497,15 +10497,15 @@ var require_rete_common = __commonJS2({
                     _context2.next = 6;
                     return Promise.all(Object.keys(json.nodes).map(/* @__PURE__ */ function() {
                       var _ref3 = _asyncToGenerator(/* @__PURE__ */ _regeneratorRuntime().mark(function _callee(id) {
-                        var node, component7;
+                        var node, component8;
                         return _regeneratorRuntime().wrap(function _callee$(_context) {
                           while (1) {
                             switch (_context.prev = _context.next) {
                               case 0:
                                 node = json.nodes[id];
-                                component7 = _this4.getComponent(node.name);
+                                component8 = _this4.getComponent(node.name);
                                 _context.next = 4;
-                                return component7.build(Node2.fromJSON(node));
+                                return component8.build(Node2.fromJSON(node));
                               case 4:
                                 nodes[id] = _context.sent;
                                 _this4.addNode(nodes[id]);
@@ -10947,7 +10947,7 @@ var require_rete_common = __commonJS2({
         key: "processWorker",
         value: function() {
           var _processWorker = _asyncToGenerator(/* @__PURE__ */ _regeneratorRuntime().mark(function _callee6(node) {
-            var inputData, component7, outputData;
+            var inputData, component8, outputData;
             return _regeneratorRuntime().wrap(function _callee6$(_context6) {
               while (1) {
                 switch (_context6.prev = _context6.next) {
@@ -10956,11 +10956,11 @@ var require_rete_common = __commonJS2({
                     return this.extractInputData(node);
                   case 2:
                     inputData = _context6.sent;
-                    component7 = this.components.get(node.name);
+                    component8 = this.components.get(node.name);
                     outputData = {};
                     _context6.prev = 5;
                     _context6.next = 8;
-                    return component7.worker.apply(component7, [node, inputData, outputData].concat(_toConsumableArray(this.args)));
+                    return component8.worker.apply(component8, [node, inputData, outputData].concat(_toConsumableArray(this.args)));
                   case 8:
                     _context6.next = 14;
                     break;
@@ -11782,7 +11782,9 @@ var _OmniLog = class _OmniLog2 {
     this._status_priority = consola.create({ level: OmniLogLevels.verbose });
     this._void = (_msg) => {
     };
-    this.__log = (msg) => consola.log(msg);
+    this.__log = (msg) => {
+      consola.log(msg);
+    };
     this._log = DEFAULT_LOG_LEVEL >= 3 ? this.__log : this._void;
     if (_OmniLog2._instance !== void 0) {
       throw new Error("Log instance duplicate error");
@@ -11799,7 +11801,9 @@ var _OmniLog = class _OmniLog2 {
     this._log = value >= 3 ? this.__log : this._void;
     consola.level = value;
     if (value < 0) {
-      this._customLevel.forEach((e) => e = OmniLogLevels.silent);
+      this._customLevel.forEach((e) => {
+        e = OmniLogLevels.silent;
+      });
     }
   }
   get warn() {
@@ -12327,18 +12331,18 @@ var App = class {
 };
 App.STATES = STATE;
 var BaseWorkflow = class _BaseWorkflow {
-  constructor(id, version, meta) {
-    this.id = id || "";
-    this.version = version || "draft";
+  constructor(id, meta) {
+    this.id = id ?? "";
     this.setMeta(meta);
     this.setRete(null);
     this.setAPI(null);
+    this.setBlockIds(/* @__PURE__ */ new Set());
     this.ui = {};
   }
   setMeta(meta) {
     var _a, _b, _c, _d;
-    meta = JSON.parse(JSON.stringify(meta || {}));
-    meta = meta || { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    meta = JSON.parse(JSON.stringify(meta ?? {}));
+    meta = meta ?? { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
     this.meta = meta;
     this.meta.updated = Date.now();
     (_a = this.meta).created ?? (_a.created = Date.now());
@@ -12367,36 +12371,40 @@ var BaseWorkflow = class _BaseWorkflow {
     this.meta.updated = Date.now();
     return this;
   }
+  setBlockIds(ids) {
+    this.blockIds = ids;
+    return this;
+  }
   get isBlank() {
     return (this?.rete?.nodes ?? []).length === 0;
   }
   toJSON() {
     return {
       id: this.id,
-      version: this.version,
       meta: this.meta,
       rete: this.rete,
       api: this.api,
-      ui: this.ui
+      ui: this.ui,
+      blockIds: this.blockIds
     };
   }
   static fromJSON(json) {
-    const result = new _BaseWorkflow(json.id, json.version);
+    const result = new _BaseWorkflow(json.id);
     result.setMeta(json.meta);
     result.setRete(json.rete);
     result.setAPI(json.api);
     result.setUI(json.ui);
+    result.setBlockIds(json.blockIds);
     return result;
   }
 };
 var _Workflow = class _Workflow2 extends BaseWorkflow {
-  // Either 'public', organisation IDs, group IDs, or user IDs
-  constructor(id, version, data, meta) {
-    super(id, version, meta);
-    this._id = version == "draft" ? `wf:${id}` : `wf:${id}:${version}`;
+  // publishedTo: string[] // Either 'public', organisation IDs, group IDs, or user IDs
+  constructor(id, data, meta) {
+    super(id, meta);
+    this._id = `wf:${id}`;
     this.owner = data.owner;
     this.org = data.org;
-    this.publishedTo = [];
   }
   toJSON() {
     return {
@@ -12404,8 +12412,8 @@ var _Workflow = class _Workflow2 extends BaseWorkflow {
       _id: this._id,
       _rev: this._rev,
       owner: this.owner,
-      org: this.org,
-      publishedTo: this.publishedTo
+      org: this.org
+      // publishedTo: this.publishedTo
     };
   }
   static fromJSON(json) {
@@ -12413,12 +12421,18 @@ var _Workflow = class _Workflow2 extends BaseWorkflow {
     if (json.id && json.id.length > 16 && id.startsWith(json.id)) {
       id = json.id;
     }
-    const result = new _Workflow2(id, json.version ?? "draft", { owner: json.owner || json.meta.owner, org: json.org });
-    result.publishedTo = json.publishedTo;
+    const result = new _Workflow2(id, { owner: json.owner || json.meta.owner, org: json.org });
     result.setMeta(json.meta);
     result.setRete(json.rete);
     result.setAPI(json.api);
     result.setUI(json.ui);
+    if (json.blockIds) {
+      result.setBlockIds(json.blockIds);
+    } else if (json.rete.nodes) {
+      result.setBlockIds(new Set(Object.values(json.rete.nodes).map((node) => node.name)));
+    } else {
+      result.setBlockIds(/* @__PURE__ */ new Set());
+    }
     if (json._rev) {
       result._rev = json._rev;
     }
@@ -12550,7 +12564,7 @@ var CustomSocket = class extends import_rete.Socket {
     return this.opts.format;
   }
   get array() {
-    return this.opts.array;
+    return this.opts.array || false;
   }
   get customAction() {
     return this.opts.customAction;
@@ -12580,7 +12594,7 @@ var CustomSocket = class extends import_rete.Socket {
 var CustomSocket_default = CustomSocket;
 var FileObjectSocket = class _FileObjectSocket extends CustomSocket_default {
   compatibleWith(socket, noReverse) {
-    let cs = this;
+    const cs = this;
     if (cs.type) {
       return ["string", "image", "audio", "document", "file"].includes(cs.type);
     } else {
@@ -12589,9 +12603,6 @@ var FileObjectSocket = class _FileObjectSocket extends CustomSocket_default {
   }
   detectMimeType(ctx, value) {
     return void 0;
-  }
-  constructor(name, type, opts) {
-    super(name, type, opts);
   }
   async persistObject(ctx, value, opts) {
     if ((value.ticket || value.fid) && value.url && !value.data) {
@@ -12630,7 +12641,7 @@ var FileObjectSocket = class _FileObjectSocket extends CustomSocket_default {
       value = await this.persistObject(ctx, value);
     }
     if (value && this.format?.startsWith("base64")) {
-      const addHeader = this.format?.includes("withHeader") === true;
+      const addHeader = this.format?.includes("withHeader");
       value = value.asBase64(addHeader);
     }
     if (this.customSettings?.do_no_return_data) {
@@ -12647,7 +12658,7 @@ var FileObjectSocket = class _FileObjectSocket extends CustomSocket_default {
     }
     value = value.filter((x) => x !== null);
     return await Promise.all(value.map(async (v2) => {
-      return this._handleSingleObject(ctx, v2, getValue);
+      return await this._handleSingleObject(ctx, v2, getValue);
     }));
   }
   async _handlePort(ctx, value, getValue) {
@@ -12656,9 +12667,9 @@ var FileObjectSocket = class _FileObjectSocket extends CustomSocket_default {
       value = [value];
     }
     if (this.array) {
-      return this._handleObjectArray(ctx, value, getValue);
+      return await this._handleObjectArray(ctx, value, getValue);
     }
-    return this._handleSingleObject(ctx, value[0], getValue);
+    return await this._handleSingleObject(ctx, value[0], getValue);
   }
   async handleInput(ctx, value) {
     return await this._handlePort(ctx, value, true);
@@ -12669,9 +12680,6 @@ var FileObjectSocket = class _FileObjectSocket extends CustomSocket_default {
 };
 var FileObjectSocket_default = FileObjectSocket;
 var DocumentSocket = class _DocumentSocket extends FileObjectSocket_default {
-  constructor(name, type, opts) {
-    super(name, type, opts);
-  }
   // Try to guess if we have a plain text
   mightBeUtf8PlainText(text2) {
     const thresholdPercentage = 0.05;
@@ -12697,7 +12705,7 @@ var DocumentSocket = class _DocumentSocket extends FileObjectSocket_default {
     return void 0;
   }
   compatibleWith(socket, noReverse) {
-    let cs = this;
+    const cs = this;
     if (cs.type) {
       return ["string", "text", "document"].includes(cs.type);
     }
@@ -12706,9 +12714,6 @@ var DocumentSocket = class _DocumentSocket extends FileObjectSocket_default {
 };
 var DocumentSocket_default = DocumentSocket;
 var PrimitiveSocket = class extends CustomSocket_default {
-  constructor(name, type, opts) {
-    super(name, type, opts);
-  }
   async handleInput(ctx, value) {
     if (Array.isArray(value)) {
       value = value[0];
@@ -12716,16 +12721,13 @@ var PrimitiveSocket = class extends CustomSocket_default {
     return value;
   }
   async handleOutput(ctx, value) {
-    return this.handleInput(ctx, value);
+    return await this.handleInput(ctx, value);
   }
 };
 var PrimitiveSocket_default = PrimitiveSocket;
 var ImageSocket = class _ImageSocket extends FileObjectSocket_default {
-  constructor(name, type, opts) {
-    super(name, type, opts);
-  }
   compatibleWith(socket, noReverse) {
-    let cs = this;
+    const cs = this;
     if (cs.type) {
       return ["string", "file", "image"].includes(cs.type);
     }
@@ -12734,8 +12736,12 @@ var ImageSocket = class _ImageSocket extends FileObjectSocket_default {
 };
 var ImageSocket_default = ImageSocket;
 var NumberSocket = class extends CustomSocket_default {
-  constructor(name, type, opts) {
-    super(name, type, opts);
+  compatibleWith(socket, noReverse) {
+    const cs = this;
+    if (cs.type) {
+      return ["integer", "number", "float"].includes(cs.type);
+    }
+    return socket instanceof CustomSocket_default;
   }
   async handleInput(ctx, value) {
     if (Array.isArray(value)) {
@@ -12753,21 +12759,21 @@ var NumberSocket = class extends CustomSocket_default {
     if (value === "nan") {
       return NaN;
     }
-    return Number(value);
+    if (typeof value !== "number") {
+      return Number(value);
+    }
+    return value;
   }
   async handleOutput(ctx, value) {
-    return this.handleInput(ctx, value);
+    return await this.handleInput(ctx, value);
   }
 };
 var NumberSocket_default = NumberSocket;
 var TextSocket = class _TextSocket extends CustomSocket_default {
-  constructor(name, type, opts) {
-    super(name, type, opts);
-  }
   compatibleWith(socket, noReverse) {
-    let cs = this;
+    const cs = this;
     if (cs.type) {
-      return ["string", "object", "number", "file", "image", "audio", "document", "text"].includes(cs.type);
+      return ["string", "object", "number", "integer", "float", "file", "image", "audio", "document", "text"].includes(cs.type);
     } else {
       return socket instanceof _TextSocket;
     }
@@ -12797,9 +12803,9 @@ var TextSocket = class _TextSocket extends CustomSocket_default {
     return JSON.stringify(value, null, 2);
   }
   async handleInput(ctx, value) {
-    const array_separator = this.customSettings?.array_separator ?? "\n";
+    const arraySeparator = this.customSettings?.array_separator ?? "\n";
     if (this.array && typeof value === "string") {
-      value = value.split(array_separator);
+      value = value.split(arraySeparator);
     }
     if (!Array.isArray(value)) {
       value = [value];
@@ -12808,32 +12814,26 @@ var TextSocket = class _TextSocket extends CustomSocket_default {
     if (this.customSettings?.filter_empty) {
       value = value.filter((v2) => v2);
     }
-    return this.array ? value : value.join(array_separator);
+    return this.array ? value : value.join(arraySeparator);
   }
   async handleOutput(ctx, value) {
-    return this.handleInput(ctx, value);
+    return await this.handleInput(ctx, value);
   }
 };
 var TextSocket_default = TextSocket;
 var BooleanSocket = class extends CustomSocket_default {
-  constructor(name, type, opts) {
-    super(name, type, opts);
-  }
   async handleInput(ctx, value) {
     if (Array.isArray(value)) {
       value = value[0];
     }
-    return !!value;
+    return Boolean(value);
   }
   async handleOutput(ctx, value) {
-    return this.handleInput(ctx, value);
+    return await this.handleInput(ctx, value);
   }
 };
 var BooleanSocket_default = BooleanSocket;
 var AnySocket = class extends CustomSocket_default {
-  constructor(name, type, opts) {
-    super(name, type, opts);
-  }
   compatibleWith(socket, noReverse) {
     return true;
   }
@@ -12933,10 +12933,14 @@ var IOComposer = class {
     return this;
   }
   setChoices(choices, defaultValue) {
-    this.data.default = defaultValue;
-    this.data.choices = SimplifyChoices(choices);
-    if (!this.data.choices) {
-      this.data.choices = [{ title: "(default)", value: defaultValue ?? "" }];
+    if (defaultValue != null) {
+      this.data.default = defaultValue;
+    }
+    if (choices != null) {
+      this.data.choices = SimplifyChoices(choices);
+      if (!this.data.choices) {
+        this.data.choices = [{ title: "(default)", value: defaultValue ?? "" }];
+      }
     }
     return this;
   }
@@ -12993,9 +12997,12 @@ var ControlComposer = class {
     return this;
   }
   setConstraints(minimum, maximum, step) {
-    this.data.minimum = minimum;
-    this.data.maximum = maximum;
-    this.data.step = step;
+    if (minimum != null)
+      this.data.minimum = minimum;
+    if (maximum != null)
+      this.data.maximum = maximum;
+    if (step != null)
+      this.data.step = step;
     return this;
   }
   toOmniControl() {
@@ -13209,6 +13216,9 @@ var OAIControl31 = class _OAIControl31 extends import_rete2.default.Control {
     this.emitter = emitter;
     this.props = { ikey: config.name };
     this.component = control;
+    if (!control) {
+      console.error("Could not find component for " + config.controlType);
+    }
   }
   async initChoices() {
     if (this.data.choices) {
@@ -13367,7 +13377,7 @@ var OAIBaseComponent = class extends Rete2.Component {
     (_a = this.data).macros ?? (_a.macros = {});
     (_b = this.data).flags ?? (_b.flags = 0);
     (_c = this.data).errors ?? (_c.errors = []);
-    (_d = this.data).enabled ?? (_d.enabled = true);
+    (_d = this.data).xOmniEnabled ?? (_d.xOmniEnabled = true);
     for (const key in this.data.inputs) {
       (_e = this.data.inputs[key]).source ?? (_e.source = { sourceType: "requestBody" });
     }
@@ -13444,11 +13454,11 @@ var OAIBaseComponent = class extends Rete2.Component {
   get controls() {
     return this.data.controls;
   }
-  get enabled() {
-    return this.data.enabled ?? true;
+  get xOmniEnabled() {
+    return this.data.xOmniEnabled ?? true;
   }
-  set enabled(enabled) {
-    this.data.enabled = enabled;
+  set xOmniEnabled(enabled) {
+    this.data.xOmniEnabled = enabled;
   }
   setType(type) {
     this.data.type = type;
@@ -14298,8 +14308,51 @@ component6.addInput(
 var SharpCompositeComponent = component6.toJSON();
 var SharpCompositeComponent_default = SharpCompositeComponent;
 
+// components/SharpNegateComponent.ts
+import sharp17 from "sharp";
+var NS_OMNI16 = "sharp";
+var component7 = OAIBaseComponent.create(NS_OMNI16, "rotate").fromScratch().set("description", "Negate / Invert an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Negate/Invert Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
+  source: {
+    summary: "Negate an image using the high speed impage manipulation library Sharp for nodejs",
+    links: {
+      "Sharp Website": "https://sharp.pixelplumbing.com/",
+      "Documentation": "https://sharp.pixelplumbing.com/api-operation#negate",
+      "Sharp Github": "https://github.com/lovell/sharp",
+      "Support Sharp": "https://opencollective.com/libvips"
+    }
+  }
+});
+component7.addInput(
+  component7.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to rotate").setRequired(true).allowMultiple(true).setControl({
+    controlType: "AlpineLabelComponent"
+  }).toOmniIO()
+);
+component7.addInput(
+  component7.createInput("alpha", "boolean").set("description", "Whether to negate alpha").toOmniIO()
+).addOutput(
+  component7.createOutput("images", "object", "image", { array: true }).set("description", "The negated images").toOmniIO()
+).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
+  if (payload.images) {
+    let images = await Promise.all(payload.images.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    let results = await Promise.all(images.map(async (image) => {
+      let buffer = image.data;
+      let sharpImage = sharp17(buffer);
+      sharpImage.negate({ alpha: payload.alpha });
+      let result = await sharpImage.toBuffer();
+      image.data = result;
+      return image;
+    }));
+    payload.images = await writeToCdn_default(ctx, results);
+  }
+  return { images: payload.images };
+});
+var SharpNegateComponent = component7.toJSON();
+var SharpNegateComponent_default = SharpNegateComponent;
+
 // extension.ts
-var components = [SharpRotationComponent_default, SharpTrimComponent_default, SharpBlurComponent_default, SharpTintComponent_default, SharpGrayscaleComponent_default, SharpExtractComponent_default, SharpMetaDataComponent_default, SharpStatsComponent_default, SharpExtendComponent_default, SharpModulateComponent_default, SharpExtractChannelComponent_default, SharpRemoveAlphaComponent_default, SharpEnsureAlphaComponent_default, SharpResizeComponent_default, SharpCompositeComponent_default];
+var components = [SharpRotationComponent_default, SharpTrimComponent_default, SharpBlurComponent_default, SharpTintComponent_default, SharpGrayscaleComponent_default, SharpExtractComponent_default, SharpMetaDataComponent_default, SharpStatsComponent_default, SharpExtendComponent_default, SharpModulateComponent_default, SharpExtractChannelComponent_default, SharpRemoveAlphaComponent_default, SharpEnsureAlphaComponent_default, SharpResizeComponent_default, SharpCompositeComponent_default, SharpNegateComponent_default];
 var extension_default = {
   createComponents: () => ({
     blocks: components,
