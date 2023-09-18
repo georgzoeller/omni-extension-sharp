@@ -14311,7 +14311,7 @@ var SharpCompositeComponent_default = SharpCompositeComponent;
 // components/SharpNegateComponent.ts
 import sharp17 from "sharp";
 var NS_OMNI16 = "sharp";
-var component7 = OAIBaseComponent.create(NS_OMNI16, "rotate").fromScratch().set("description", "Negate / Invert an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Negate/Invert Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
+var component7 = OAIBaseComponent.create(NS_OMNI16, "negate").fromScratch().set("description", "Negate / Invert an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Negate/Invert Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Negate an image using the high speed impage manipulation library Sharp for nodejs",
     links: {

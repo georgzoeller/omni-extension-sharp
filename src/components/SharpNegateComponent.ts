@@ -6,7 +6,7 @@ const NS_OMNI = 'sharp'
 
 // SharpRotationComponent
 const component = OAIBaseComponent
-  .create(NS_OMNI, "rotate")
+  .create(NS_OMNI, "negate")
   .fromScratch()
   .set('description', 'Negate / Invert an image using the high speed impage manipulation library Sharp for nodejs')
   .set('title', 'Negate/Invert Image (Sharp)')
