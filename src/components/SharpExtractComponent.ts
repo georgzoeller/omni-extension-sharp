@@ -1,4 +1,4 @@
-import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete'
+import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'omni-sockets'
 import sharp from 'sharp'
 import writeToCdn from '../util/writeToCdn'
 
