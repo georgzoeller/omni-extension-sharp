@@ -1,21 +1,39 @@
-import SharpRotationComponent from "./components/SharpRotationComponent";
-import SharpTrimComponent from "./components/SharpTrimComponent";
-import SharpBlurComponent from "./components/SharpBlurComponent";
-import SharpTintComponent from "./components/SharpTintComponent";
-import SharpGrayscaleComponent from "./components/SharpGrayscaleComponent";
-import SharpExtractComponent from "./components/SharpExtractComponent";
-import SharpMetaDataComponent from "./components/SharpMetaDataComponent";
-import SharpStatsComponent from "./components/SharpStatsComponent";
-import SharpExtendComponent from "./components/SharpExtendComponent";
-import SharpModulateComponent from "./components/SharpModulateComponent";
-import SharpExtractChannelComponent from "./components/SharpExtractChannelComponent";
-import SharpRemoveAlphaComponent from "./components/SharpRemoveAlphaComponent";
-import SharpEnsureAlphaComponent from "./components/SharpEnsureAlphaComponent";
-import SharpResizeComponent from "./components/SharpResizeComponent";
-import SharpCompositeComponent from "./components/SharpCompositeComponent";
-import SharpNegateComponent from "./components/SharpNegateComponent";
+// Maintain imports and the `components` array in alphabetical order to reduce git conflicts.
+import SharpBlurComponent from "./components/SharpBlurComponent"
+import SharpCompositeComponent from "./components/SharpCompositeComponent"
+import SharpEnsureAlphaComponent from "./components/SharpEnsureAlphaComponent"
+import SharpExtractChannelComponent from "./components/SharpExtractChannelComponent"
+import SharpExtractComponent from "./components/SharpExtractComponent"
+import SharpExtendComponent from "./components/SharpExtendComponent"
+import SharpGrayscaleComponent from "./components/SharpGrayscaleComponent"
+import SharpMetaDataComponent from "./components/SharpMetaDataComponent"
+import SharpModulateComponent from "./components/SharpModulateComponent"
+import SharpNegateComponent from "./components/SharpNegateComponent"
+import SharpRemoveAlphaComponent from "./components/SharpRemoveAlphaComponent"
+import SharpResizeComponent from "./components/SharpResizeComponent"
+import SharpRotationComponent from "./components/SharpRotationComponent"
+import SharpStatsComponent from "./components/SharpStatsComponent"
+import SharpTintComponent from "./components/SharpTintComponent"
+import SharpTrimComponent from "./components/SharpTrimComponent"
 
-let components = [SharpRotationComponent, SharpTrimComponent, SharpBlurComponent, SharpTintComponent, SharpGrayscaleComponent, SharpExtractComponent, SharpMetaDataComponent, SharpStatsComponent, SharpExtendComponent, SharpModulateComponent, SharpExtractChannelComponent, SharpRemoveAlphaComponent, SharpEnsureAlphaComponent, SharpResizeComponent, SharpCompositeComponent, SharpNegateComponent];
+let components = [
+  SharpBlurComponent,
+  SharpCompositeComponent,
+  SharpEnsureAlphaComponent,
+  SharpExtractChannelComponent,
+  SharpExtractComponent,
+  SharpExtendComponent,
+  SharpGrayscaleComponent,
+  SharpMetaDataComponent,
+  SharpModulateComponent,
+  SharpNegateComponent,
+  SharpRemoveAlphaComponent,
+  SharpResizeComponent,
+  SharpRotationComponent,
+  SharpStatsComponent,
+  SharpTintComponent,
+  SharpTrimComponent,
+]
 
 export default {
   createComponents: () => ({

@@ -1,4 +1,4 @@
-// components/SharpRotationComponent.ts
+// components/SharpBlurComponent.ts
 import { OAIBaseComponent, OmniComponentMacroTypes } from "omni-sockets";
 import sharp2 from "sharp";
 
@@ -28,104 +28,9 @@ var writeToCdn = async (ctx, images, meta) => {
 };
 var writeToCdn_default = writeToCdn;
 
-// components/SharpRotationComponent.ts
-var NS_OMNI = "sharp";
-var component = OAIBaseComponent.create(NS_OMNI, "rotate").fromScratch().set("description", "Rotate an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Rotate Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "Rotate an image using the high speed impage manipulation library Sharp for nodejs",
-    links: {
-      "Sharp Website": "https://sharp.pixelplumbing.com/",
-      "Documentation": "https://sharp.pixelplumbing.com/api-operation#rotate",
-      "Sharp Github": "https://github.com/lovell/sharp",
-      "Support Sharp": "https://opencollective.com/libvips"
-    }
-  }
-});
-component.addInput(
-  component.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to rotate").setRequired(true).allowMultiple(true).setControl({
-    controlType: "AlpineLabelComponent"
-  }).toOmniIO()
-).addInput(
-  component.createInput("angle", "number").set("description", "The angle of rotation. (optional, default 0)").setDefault(0).setConstraints(-360, 360, 1).setControl({
-    controlType: "AlpineNumWithSliderComponent"
-  }).toOmniIO()
-).addInput(
-  component.createInput("background", "string").set("description", "Background colour when using a non-zero angle. (optional, default black)").setDefault("black").setControl({
-    controlType: "AlpineColorComponent"
-  }).toOmniIO()
-).addOutput(
-  component.createOutput("images", "object", "image", { array: true }).set("description", "The rotated images").toOmniIO()
-).setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
-  if (payload.images) {
-    let images = await Promise.all(payload.images.map((image) => {
-      return ctx.app.cdn.get(image.ticket);
-    }));
-    let background = payload.background || "black";
-    let angle = payload.angle || 90;
-    let results = await Promise.all(images.map(async (image) => {
-      let buffer = image.data;
-      let sharpImage = sharp2(buffer);
-      sharpImage.rotate(angle, { background });
-      let result = await sharpImage.toBuffer();
-      image.data = result;
-      return image;
-    }));
-    payload.images = await writeToCdn_default(ctx, results);
-  }
-  return { images: payload.images };
-});
-var SharpRotateComponent = component.toJSON();
-var SharpRotationComponent_default = SharpRotateComponent;
-
-// components/SharpTrimComponent.ts
-import { OAIBaseComponent as OAIBaseComponent2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "omni-sockets";
-import sharp3 from "sharp";
-var NS_OMNI2 = "omnitool";
-var component2 = OAIBaseComponent2.create(NS_OMNI2, "trim").fromScratch().set("description", "Trim pixels from all edges that contain values similar to the given background colour.").set("title", "Trim Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
-component2.addInput(
-  component2.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
-    controlType: "AlpineLabelComponent"
-  }).toOmniIO()
-).addInput(
-  component2.createInput("trimMode", "string").set("description", "Specify the mode for trimming: Top left pixel or Background color.").setChoices(["Top left Pixel", "Background color"], "Top left Pixel").setControl({
-    controlType: "AlpineSelectComponent"
-  }).toOmniIO()
-).addInput(
-  component2.createInput("background", "string").set("description", "Background colour to trim, used when trim mode is Background color.").setDefault("#000000").setControl({
-    controlType: "AlpineColorComponent"
-  }).toOmniIO()
-).addInput(
-  component2.createInput("threshold", "number").set("description", "The allowed difference from the above colour, a positive number.").setDefault(10).setControl({
-    controlType: "AlpineNumWithSliderComponent",
-    step: 1
-  }).toOmniIO()
-).addOutput(
-  component2.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes2.EXEC, async (payload, ctx) => {
-  if (payload.images) {
-    let images = await Promise.all(payload.images.map((image) => {
-      return ctx.app.cdn.get(image.ticket);
-    }));
-    let results = await Promise.all(images.map(async (image) => {
-      if (payload.trimMode === "Background color") {
-        image.data = await sharp3(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer();
-      } else {
-        image.data = await sharp3(image.data).trim(payload.threshold).toBuffer();
-      }
-      return image;
-    }));
-    payload.images = await writeToCdn_default(ctx, results);
-  }
-  return { images: payload.images };
-});
-var SharpTrimComponent = component2.toJSON();
-var SharpTrimComponent_default = SharpTrimComponent;
-
 // components/SharpBlurComponent.ts
-import { OAIBaseComponent as OAIBaseComponent3, OmniComponentMacroTypes as OmniComponentMacroTypes3 } from "omni-sockets";
-import sharp4 from "sharp";
-var NS_OMNI3 = "sharp";
-var blurComponent = OAIBaseComponent3.create(NS_OMNI3, "blur").fromScratch().set("title", "Blur Image (Sharp)").set("category", "Image Manipulation").set("description", "Blurs an image").setMethod("X-CUSTOM").setMeta({
+var NS_OMNI = "sharp";
+var blurComponent = OAIBaseComponent.create(NS_OMNI, "blur").fromScratch().set("title", "Blur Image (Sharp)").set("category", "Image Manipulation").set("description", "Blurs an image").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Blurs an image, optionally using a sigmal value via Gaussian Blur",
     links: {
@@ -143,14 +48,14 @@ blurComponent.addInput(
 ).addOutput(
   blurComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The blurred images").toOmniIO()
 );
-blurComponent.setMacro(OmniComponentMacroTypes3.EXEC, async (payload, ctx) => {
+blurComponent.setMacro(OmniComponentMacroTypes.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
     let results = await Promise.all(images.map(async (image) => {
       let buffer = image.data;
-      let sharpImage = sharp4(buffer);
+      let sharpImage = sharp2(buffer);
       if (payload.sigma === 0) {
         sharpImage.blur();
       }
@@ -169,57 +74,239 @@ blurComponent.setMacro(OmniComponentMacroTypes3.EXEC, async (payload, ctx) => {
 var SharpBlurComponent = blurComponent.toJSON();
 var SharpBlurComponent_default = SharpBlurComponent;
 
-// components/SharpTintComponent.ts
-import { OAIBaseComponent as OAIBaseComponent4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "omni-sockets";
-import sharp5 from "sharp";
-var NS_OMNI4 = "sharp";
-var tintComponent = OAIBaseComponent4.create(NS_OMNI4, "tint").fromScratch().set("title", "Tint Image (Sharp)").set("category", "Image Manipulation").set("description", "Tints an image").setMethod("X-CUSTOM").setMeta({
+// components/SharpCompositeComponent.ts
+import { OAIBaseComponent as OAIBaseComponent2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "omni-sockets";
+import sharp3 from "sharp";
+var NS_OMNI2 = "sharp";
+var component = OAIBaseComponent2.create(NS_OMNI2, "composite").fromScratch().set("description", "Composite image(s) over the processed image using various options.").set("title", "Composite Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
   source: {
-    summary: "Tints an image via provided RGB values",
+    summary: "Composite image(s) over the processed image with options for blending, placement, tiling, and more.",
     links: {
       "Sharp Website": "https://sharp.pixelplumbing.com/",
-      "Documentation": "https://sharp.pixelplumbing.com/api-operation#tint",
+      "Documentation": "https://sharp.pixelplumbing.com/api-composite",
       "Sharp Github": "https://github.com/lovell/sharp",
       "Support Sharp": "https://opencollective.com/libvips"
     }
   }
 });
-tintComponent.addInput(
-  tintComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to blur").allowMultiple(true).setRequired(true).toOmniIO()
+component.addInput(
+  component.createInput("images", "array", "image", { array: true }).set("description", "Images to be processed").setRequired(true).allowMultiple(true).toOmniIO()
 ).addInput(
-  tintComponent.createInput("red", "number").set("description", "Tint the red channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
+  component.createInput("compositeImages", "array", "image", { array: true }).set("description", "Images to be composited").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(
-  tintComponent.createInput("green", "number").set("description", "Tint the green channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
+  component.createInput("blend", "string").set("description", "How to blend this image with the image below.").setChoices(["clear", "source", "over", "in", "out", "atop", "dest", "dest-over", "dest-in", "dest-out", "dest-atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "colour-dodge", "color-dodge", "colour-burn", "color-burn", "hard-light", "soft-light", "difference", "exclusion"], "clear").toOmniIO()
 ).addInput(
-  tintComponent.createInput("blue", "number").set("description", "Tint the blue channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
+  component.createInput("gravity", "string").set("description", "Gravity at which to place the overlay.").setChoices(["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest", "centre", "center"], "northeast").toOmniIO()
+).addInput(
+  component.createInput("top", "number").set("description", "The pixel offset from the top edge.").toOmniIO()
+).addInput(
+  component.createInput("left", "number").set("description", "The pixel offset from the left edge.").toOmniIO()
+).addInput(
+  component.createInput("tile", "boolean").set("description", "Set to true to repeat the overlay image across the entire image with the given gravity.").toOmniIO()
+).addInput(
+  component.createInput("premultiplied", "boolean").set("description", "Set to true to avoid premultiplying the image below.").toOmniIO()
+).addInput(
+  component.createInput("density", "number").set("description", "Number representing the DPI for vector overlay image.").setDefault(72).setConstraints(1, 600, 1).toOmniIO()
 ).addOutput(
-  tintComponent.createOutput("images", "object", "image", { array: true }).set("description", "The tinted images").toOmniIO()
+  component.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
+).setMacro(OmniComponentMacroTypes2.EXEC, async (payload, ctx) => {
+  if (payload.images && payload.compositeImages) {
+    let images = await Promise.all(payload.images.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    let compositeImages = await Promise.all(payload.compositeImages.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    let results = await Promise.all(images.map(async (image, index) => {
+      image.data = await sharp3(image.data).composite(compositeImages.map((compositeImage) => ({
+        input: compositeImage.data,
+        blend: payload.blend,
+        gravity: payload.gravity,
+        top: payload.top,
+        left: payload.left,
+        tile: payload.tile,
+        premultiplied: payload.premultiplied,
+        density: payload.density
+      }))).toBuffer();
+      return image;
+    }));
+    results = await writeToCdn_default(ctx, results);
+    return { images: results };
+  }
+  return {};
+});
+var SharpCompositeComponent = component.toJSON();
+var SharpCompositeComponent_default = SharpCompositeComponent;
+
+// components/SharpEnsureAlphaComponent.ts
+import { OAIBaseComponent as OAIBaseComponent3, OmniComponentMacroTypes as OmniComponentMacroTypes3 } from "omni-sockets";
+import sharp4 from "sharp";
+var NS_OMNI3 = "sharp";
+var ensureAlphaComponent = OAIBaseComponent3.create(NS_OMNI3, "ensureAlpha").fromScratch().set("title", "Ensure Alpha (Sharp)").set("category", "Image Manipulation").set("description", "Ensure the output image has an alpha transparency channel.").setMethod("X-CUSTOM").setMeta({
+  source: {
+    summary: "Ensure the output image has an alpha transparency channel. If missing, the added alpha channel will have the specified transparency level, defaulting to fully-opaque (1). This is a no-op if the image already has an alpha channel.",
+    links: {
+      "Sharp Website": "https://sharp.pixelplumbing.com/",
+      "Documentation": "https://sharp.pixelplumbing.com/api-channel#ensureAlpha",
+      "Sharp Github": "https://github.com/lovell/sharp",
+      "Support Sharp": "https://opencollective.com/libvips"
+    }
+  }
+});
+ensureAlphaComponent.addInput(
+  ensureAlphaComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).toOmniIO()
+).addInput(
+  ensureAlphaComponent.createInput("alpha", "number").set("title", "Alpha").set("description", "Alpha transparency level (0=fully-transparent, 1=fully-opaque).").setDefault(1).setConstraints(0, 1, 0.1).toOmniIO()
+).addOutput(
+  ensureAlphaComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The processed images").toOmniIO()
+).setMacro(OmniComponentMacroTypes3.EXEC, async (payload, ctx) => {
+  if (payload.images) {
+    let images = await Promise.all(payload.images.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    let results = await Promise.all(images.map(async (image) => {
+      image.data = await sharp4(image.data).ensureAlpha(payload.alpha).toBuffer();
+      return image;
+    }));
+    payload.images = await writeToCdn_default(ctx, results);
+  }
+  return { images: payload.images };
+});
+var SharpEnsureAlphaComponent = ensureAlphaComponent.toJSON();
+var SharpEnsureAlphaComponent_default = SharpEnsureAlphaComponent;
+
+// components/SharpExtractChannelComponent.ts
+import { OAIBaseComponent as OAIBaseComponent4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "omni-sockets";
+import sharp5 from "sharp";
+var NS_OMNI4 = "sharp";
+var extractChannelComponent = OAIBaseComponent4.create(NS_OMNI4, "extractChannel").fromScratch().set("title", "Extract Channel (Sharp)").set("category", "Image Manipulation").set("description", "Extract channels from a multi-channel image.").setMethod("X-CUSTOM").setMeta({
+  source: {
+    summary: "Extract channel from a multi-channel image.",
+    links: {
+      "Sharp Website": "https://sharp.pixelplumbing.com/",
+      "Documentation": "https://sharp.pixelplumbing.com/api-channel#extractchannel",
+      "Sharp Github": "https://github.com/lovell/sharp",
+      "Support Sharp": "https://opencollective.com/libvips"
+    }
+  }
+});
+extractChannelComponent.addInput(
+  extractChannelComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to operate on").allowMultiple(true).setRequired(true).toOmniIO()
+).addInput(
+  extractChannelComponent.createInput("channel", "string").set("title", "Channel").set("description", "The channel to extract.").setDefault("red").setChoices(["red", "green", "blue", "alpha"]).toOmniIO()
+).addOutput(
+  extractChannelComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The processed images").toOmniIO()
 ).setMacro(OmniComponentMacroTypes4.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
-    const tint = {
-      r: parseInt(payload.red),
-      g: parseInt(payload.green),
-      b: parseInt(payload.blue)
-    };
     let results = await Promise.all(images.map(async (image) => {
-      image.data = await sharp5(image.data).tint(tint).toBuffer();
+      image.data = await sharp5(image.data).extractChannel(payload.channel).toBuffer();
       return image;
     }));
-    payload.images = await writeToCdn_default(ctx, results, { tint });
+    payload.images = await writeToCdn_default(ctx, results);
   }
   return { images: payload.images };
 });
-var SharpTintComponent = tintComponent.toJSON();
-var SharpTintComponent_default = SharpTintComponent;
+var SharpExtractChannelComponent = extractChannelComponent.toJSON();
+var SharpExtractChannelComponent_default = SharpExtractChannelComponent;
 
-// components/SharpGrayscaleComponent.ts
+// components/SharpExtractComponent.ts
 import { OAIBaseComponent as OAIBaseComponent5, OmniComponentMacroTypes as OmniComponentMacroTypes5 } from "omni-sockets";
 import sharp6 from "sharp";
 var NS_OMNI5 = "sharp";
-var grayScaleComponent = OAIBaseComponent5.create(NS_OMNI5, "grayscale").fromScratch().set("title", "Grayscale Image (Sharp)").set("category", "Image Manipulation").set("description", "Convert an image to 8-bit, 256 color grayscale").setMethod("X-CUSTOM").setMeta({
+var component2 = OAIBaseComponent5.create(NS_OMNI5, "extract").fromScratch().set("description", "Extracts/Crops an image region").set("title", "Extract Image Region (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
+  source: {
+    summary: "Extract/crop a region of the image. Use extract before resize for pre-resize extraction. Use extract after resize for post-resize extraction. Use extract before and after for both.",
+    links: {
+      "Sharp Website": "https://sharp.pixelplumbing.com/",
+      "Documentation": "https://sharp.pixelplumbing.com/api-operation#extract",
+      "Sharp Github": "https://github.com/lovell/sharp",
+      "Support Sharp": "https://opencollective.com/libvips"
+    }
+  }
+});
+component2.addInput(
+  component2.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to extract from").setRequired(true).allowMultiple(true).setControl({
+    controlType: "AlpineLabelComponent"
+  }).toOmniIO()
+).addInput(
+  component2.createInput("left", "number").set("description", "Left").setDefault(0).setConstraints(0).toOmniIO()
+).addInput(
+  component2.createInput("top", "number").set("description", "Top").setDefault(0).setConstraints(0).toOmniIO()
+).addInput(
+  component2.createInput("width", "number").set("description", "Width").setDefault(512).setConstraints(0).toOmniIO()
+).addInput(
+  component2.createInput("height", "number").set("description", "Height").setDefault(512).setConstraints(0).toOmniIO()
+).addOutput(
+  component2.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
+).setMacro(OmniComponentMacroTypes5.EXEC, async (payload, ctx) => {
+  if (payload.images) {
+    let images = await Promise.all(payload.images.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    let results = await Promise.all(images.map(async (image) => {
+      const { left, top, width, height } = payload;
+      image.data = await sharp6(image.data).extract({ left, top, width, height }).toBuffer();
+      return image;
+    }));
+    payload.images = await writeToCdn_default(ctx, results);
+  }
+  return { images: payload.images };
+});
+var SharpExtractComponent = component2.toJSON();
+var SharpExtractComponent_default = SharpExtractComponent;
+
+// components/SharpExtendComponent.ts
+import { OAIBaseComponent as OAIBaseComponent6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "omni-sockets";
+import sharp7 from "sharp";
+var NS_OMNI6 = "sharp";
+var component3 = OAIBaseComponent6.create(NS_OMNI6, "extend").fromScratch().set("description", "Extend / pad / extrude one or more edges of the image.").set("title", "Extend Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
+component3.addInput(
+  component3.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to extend").setRequired(true).allowMultiple(true).setControl({
+    controlType: "AlpineLabelComponent"
+  }).toOmniIO()
+).addInput(
+  component3.createInput("extendWith", "string").set("description", "How to determine the color of the new pixels.").setChoices(["background", "copy", "repeat", "mirror"], "background").toOmniIO()
+).addInput(
+  component3.createInput("background", "string").set("description", 'The color of the new pixels if method "background" was chosen.').setDefault("#000000").setControl({
+    controlType: "AlpineColorComponent"
+  }).toOmniIO()
+).addInput(
+  component3.createInput("left", "integer").set("title", "Left").setDefault(0).setConstraints(0).toOmniIO()
+).addInput(
+  component3.createInput("top", "integer").set("title", "Top").setDefault(0).setConstraints(0).toOmniIO()
+).addInput(
+  component3.createInput("bottom", "integer").set("title", "Bottom").setDefault(0).setConstraints(0).toOmniIO()
+).addInput(
+  component3.createInput("right", "integer").set("title", "Right").setDefault(0).setConstraints(0).toOmniIO()
+).addOutput(
+  component3.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
+).setMacro(OmniComponentMacroTypes6.EXEC, async (payload, ctx) => {
+  if (payload.images) {
+    let images = await Promise.all(payload.images.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    let results = await Promise.all(images.map(async (image) => {
+      const { left, right, top, bottom, extendWith, background } = payload;
+      image.data = await sharp7(image.data).extend({ left, right, top, bottom, extendWith, background }).toBuffer();
+      image.meta.width += left + right;
+      image.meta.height += top + bottom;
+      return image;
+    }));
+    payload.images = await writeToCdn_default(ctx, results);
+  }
+  return payload;
+});
+var SharpExtendComponent = component3.toJSON();
+var SharpExtendComponent_default = SharpExtendComponent;
+
+// components/SharpGrayscaleComponent.ts
+import { OAIBaseComponent as OAIBaseComponent7, OmniComponentMacroTypes as OmniComponentMacroTypes7 } from "omni-sockets";
+import sharp8 from "sharp";
+var NS_OMNI7 = "sharp";
+var grayScaleComponent = OAIBaseComponent7.create(NS_OMNI7, "grayscale").fromScratch().set("title", "Grayscale Image (Sharp)").set("category", "Image Manipulation").set("description", "Convert an image to 8-bit, 256 color grayscale").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Convert to 8-bit greyscale; 256 shades of grey. This is a linear operation. If the input image is in a non-linear colour space such as sRGB, use gamma() with greyscale() for the best results. By default the output image will be web-friendly sRGB and contain three (identical) color channels. This may be overridden by other sharp operations such as toColourspace('b-w'), which will produce an output image containing one color channel. An alpha channel may be present, and will be unchanged by the operation.",
     links: {
@@ -236,14 +323,14 @@ grayScaleComponent.addInput(
   grayScaleComponent.createInput("grayscale", "boolean").set("title", "Grayscale").set("description", "Grayscale the Image").setDefault(true).toOmniIO()
 ).addOutput(
   grayScaleComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The grayscaled images").toOmniIO()
-).setMacro(OmniComponentMacroTypes5.EXEC, async (payload, ctx) => {
+).setMacro(OmniComponentMacroTypes7.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
     let results = await Promise.all(images.map(async (image) => {
       if (payload.grayscale) {
-        image.data = await sharp6(image.data).grayscale(true).toBuffer();
+        image.data = await sharp8(image.data).grayscale(true).toBuffer();
       }
       return image;
     }));
@@ -254,57 +341,11 @@ grayScaleComponent.addInput(
 var SharpGrayscaleComponent = grayScaleComponent.toJSON();
 var SharpGrayscaleComponent_default = SharpGrayscaleComponent;
 
-// components/SharpExtractComponent.ts
-import { OAIBaseComponent as OAIBaseComponent6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "omni-sockets";
-import sharp7 from "sharp";
-var NS_OMNI6 = "sharp";
-var component3 = OAIBaseComponent6.create(NS_OMNI6, "extract").fromScratch().set("description", "Extracts/Crops an image region").set("title", "Extract Image Region (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "Extract/crop a region of the image. Use extract before resize for pre-resize extraction. Use extract after resize for post-resize extraction. Use extract before and after for both.",
-    links: {
-      "Sharp Website": "https://sharp.pixelplumbing.com/",
-      "Documentation": "https://sharp.pixelplumbing.com/api-operation#extract",
-      "Sharp Github": "https://github.com/lovell/sharp",
-      "Support Sharp": "https://opencollective.com/libvips"
-    }
-  }
-});
-component3.addInput(
-  component3.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to extract from").setRequired(true).allowMultiple(true).setControl({
-    controlType: "AlpineLabelComponent"
-  }).toOmniIO()
-).addInput(
-  component3.createInput("left", "number").set("description", "Left").setDefault(0).setConstraints(0).toOmniIO()
-).addInput(
-  component3.createInput("top", "number").set("description", "Top").setDefault(0).setConstraints(0).toOmniIO()
-).addInput(
-  component3.createInput("width", "number").set("description", "Width").setDefault(512).setConstraints(0).toOmniIO()
-).addInput(
-  component3.createInput("height", "number").set("description", "Height").setDefault(512).setConstraints(0).toOmniIO()
-).addOutput(
-  component3.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes6.EXEC, async (payload, ctx) => {
-  if (payload.images) {
-    let images = await Promise.all(payload.images.map((image) => {
-      return ctx.app.cdn.get(image.ticket);
-    }));
-    let results = await Promise.all(images.map(async (image) => {
-      const { left, top, width, height } = payload;
-      image.data = await sharp7(image.data).extract({ left, top, width, height }).toBuffer();
-      return image;
-    }));
-    payload.images = await writeToCdn_default(ctx, results);
-  }
-  return { images: payload.images };
-});
-var SharpExtractComponent = component3.toJSON();
-var SharpExtractComponent_default = SharpExtractComponent;
-
 // components/SharpMetaDataComponent.ts
-import { OAIBaseComponent as OAIBaseComponent7, OmniComponentMacroTypes as OmniComponentMacroTypes7 } from "omni-sockets";
-import sharp8 from "sharp";
-var NS_OMNI7 = "sharp";
-var metadataComponent = OAIBaseComponent7.create(NS_OMNI7, "metadata").fromScratch().set("title", "Get Image Metadata (Sharp)").set("category", "Image Manipulation").set("description", "Returns the metadata of an image").setMethod("X-CUSTOM").setMeta({
+import { OAIBaseComponent as OAIBaseComponent8, OmniComponentMacroTypes as OmniComponentMacroTypes8 } from "omni-sockets";
+import sharp9 from "sharp";
+var NS_OMNI8 = "sharp";
+var metadataComponent = OAIBaseComponent8.create(NS_OMNI8, "metadata").fromScratch().set("title", "Get Image Metadata (Sharp)").set("category", "Image Manipulation").set("description", "Returns the metadata of an image").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Fast access to (uncached) image metadata without decoding any compressed pixel data. This is read from the header of the input image. It does not take into consideration any operations to be applied to the output image, such as resize or rotate.",
     links: {
@@ -319,13 +360,13 @@ metadataComponent.addInput(
   metadataComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to inspect").setRequired(true).allowMultiple(true).toOmniIO()
 ).addOutput(
   metadataComponent.createOutput("metadata", "object", "objectArray").set("title", "Metadata").set("description", "Metadata of the image(s)").toOmniIO()
-).setMacro(OmniComponentMacroTypes7.EXEC, async (payload, ctx) => {
+).setMacro(OmniComponentMacroTypes8.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
     let results = await Promise.all(images.map(async (image) => {
-      let md = await sharp8(image.data).metadata();
+      let md = await sharp9(image.data).metadata();
       return Object.assign({}, image.meta, md || {});
     }));
     payload.metadata = results;
@@ -335,90 +376,11 @@ metadataComponent.addInput(
 var SharpMetaDataComponent = metadataComponent.toJSON();
 var SharpMetaDataComponent_default = SharpMetaDataComponent;
 
-// components/SharpStatsComponent.ts
-import { OAIBaseComponent as OAIBaseComponent8, OmniComponentMacroTypes as OmniComponentMacroTypes8 } from "omni-sockets";
-import sharp9 from "sharp";
-var NS_OMNI8 = "sharp";
-var statsComponent = OAIBaseComponent8.create(NS_OMNI8, "stats").fromScratch().set("title", "Get Image Stats (Sharp)").set("category", "Image Manipulation").set("description", "Access to pixel-derived image statistics for every channel in the image").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "Access to pixel-derived image statistics for every channel in the image",
-    links: {
-      "Sharp Website": "https://sharp.pixelplumbing.com/",
-      "Documentation": "https://sharp.pixelplumbing.com/api-input#stats",
-      "Sharp Github": "https://github.com/lovell/sharp",
-      "Support Sharp": "https://opencollective.com/libvips"
-    }
-  }
-});
-statsComponent.addInput(
-  statsComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to inspect").allowMultiple(true).setRequired(true).toOmniIO()
-).addOutput(
-  statsComponent.createOutput("stats", "object", "objectArray").set("title", "Stats").set("description", "Pixel-derived image statistics for every channel in the image").toOmniIO()
-).setMacro(OmniComponentMacroTypes8.EXEC, async (payload, ctx) => {
-  if (payload.images) {
-    let images = await Promise.all(payload.images.map((image) => {
-      return ctx.app.cdn.get(image.ticket);
-    }));
-    let results = await Promise.all(images.map(async (image) => {
-      let md = await sharp9(image.data).stats();
-      return md;
-    }));
-    payload.stats = results;
-  }
-  return { stats: payload.stats };
-});
-var SharpStatsComponent = statsComponent.toJSON();
-var SharpStatsComponent_default = SharpStatsComponent;
-
-// components/SharpExtendComponent.ts
+// components/SharpModulateComponent.ts
 import { OAIBaseComponent as OAIBaseComponent9, OmniComponentMacroTypes as OmniComponentMacroTypes9 } from "omni-sockets";
 import sharp10 from "sharp";
 var NS_OMNI9 = "sharp";
-var component4 = OAIBaseComponent9.create(NS_OMNI9, "extend").fromScratch().set("description", "Extend / pad / extrude one or more edges of the image.").set("title", "Extend Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
-component4.addInput(
-  component4.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to extend").setRequired(true).allowMultiple(true).setControl({
-    controlType: "AlpineLabelComponent"
-  }).toOmniIO()
-).addInput(
-  component4.createInput("extendWith", "string").set("description", "How to determine the color of the new pixels.").setChoices(["background", "copy", "repeat", "mirror"], "background").toOmniIO()
-).addInput(
-  component4.createInput("background", "string").set("description", 'The color of the new pixels if method "background" was chosen.').setDefault("#000000").setControl({
-    controlType: "AlpineColorComponent"
-  }).toOmniIO()
-).addInput(
-  component4.createInput("left", "integer").set("title", "Left").setDefault(0).setConstraints(0).toOmniIO()
-).addInput(
-  component4.createInput("top", "integer").set("title", "Top").setDefault(0).setConstraints(0).toOmniIO()
-).addInput(
-  component4.createInput("bottom", "integer").set("title", "Bottom").setDefault(0).setConstraints(0).toOmniIO()
-).addInput(
-  component4.createInput("right", "integer").set("title", "Right").setDefault(0).setConstraints(0).toOmniIO()
-).addOutput(
-  component4.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes9.EXEC, async (payload, ctx) => {
-  if (payload.images) {
-    let images = await Promise.all(payload.images.map((image) => {
-      return ctx.app.cdn.get(image.ticket);
-    }));
-    let results = await Promise.all(images.map(async (image) => {
-      const { left, right, top, bottom, extendWith, background } = payload;
-      image.data = await sharp10(image.data).extend({ left, right, top, bottom, extendWith, background }).toBuffer();
-      image.meta.width += left + right;
-      image.meta.height += top + bottom;
-      return image;
-    }));
-    payload.images = await writeToCdn_default(ctx, results);
-  }
-  return payload;
-});
-var SharpExtendComponent = component4.toJSON();
-var SharpExtendComponent_default = SharpExtendComponent;
-
-// components/SharpModulateComponent.ts
-import { OAIBaseComponent as OAIBaseComponent10, OmniComponentMacroTypes as OmniComponentMacroTypes10 } from "omni-sockets";
-import sharp11 from "sharp";
-var NS_OMNI10 = "sharp";
-var modulateComponent = OAIBaseComponent10.create(NS_OMNI10, "modulate").fromScratch().set("title", "Modulate Image (Sharp)").set("category", "Image Manipulation").set("description", "Transforms the image using brightness, saturation, hue rotation, and lightness").setMethod("X-CUSTOM").setMeta({
+var modulateComponent = OAIBaseComponent9.create(NS_OMNI9, "modulate").fromScratch().set("title", "Modulate Image (Sharp)").set("category", "Image Manipulation").set("description", "Transforms the image using brightness, saturation, hue rotation, and lightness").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Transforms the image using brightness, saturation, hue rotation, and lightness. Brightness and lightness both operate on luminance, with the difference being that brightness is multiplicative whereas lightness is additive.",
     links: {
@@ -441,7 +403,7 @@ modulateComponent.addInput(
   modulateComponent.createInput("lightness", "float").set("title", "Lightness").set("description", "The lightness addend.").setDefault(0).setConstraints(0).toOmniIO()
 ).addOutput(
   modulateComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes10.EXEC, async (payload, ctx) => {
+).setMacro(OmniComponentMacroTypes9.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
@@ -451,7 +413,7 @@ modulateComponent.addInput(
       if (args.hue == 0) {
         delete args.hue;
       }
-      image.data = await sharp11(image.data).modulate(args).toBuffer();
+      image.data = await sharp10(image.data).modulate(args).toBuffer();
       return image;
     }));
     payload.images = await writeToCdn_default(ctx, results);
@@ -461,61 +423,68 @@ modulateComponent.addInput(
 var SharpModulateComponent = modulateComponent.toJSON();
 var SharpModulateComponent_default = SharpModulateComponent;
 
-// components/SharpExtractChannelComponent.ts
-import { OAIBaseComponent as OAIBaseComponent11, OmniComponentMacroTypes as OmniComponentMacroTypes11 } from "omni-sockets";
-import sharp12 from "sharp";
-var NS_OMNI11 = "sharp";
-var extractChannelComponent = OAIBaseComponent11.create(NS_OMNI11, "extractChannel").fromScratch().set("title", "Extract Channel (Sharp)").set("category", "Image Manipulation").set("description", "Extract channels from a multi-channel image.").setMethod("X-CUSTOM").setMeta({
+// components/SharpNegateComponent.ts
+import { OAIBaseComponent as OAIBaseComponent10, OmniComponentMacroTypes as OmniComponentMacroTypes10 } from "omni-sockets";
+import sharp11 from "sharp";
+var NS_OMNI10 = "sharp";
+var component4 = OAIBaseComponent10.create(NS_OMNI10, "negate").fromScratch().set("description", "Negate / Invert an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Negate/Invert Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
   source: {
-    summary: "Extract channel from a multi-channel image.",
+    summary: "Negate an image using the high speed impage manipulation library Sharp for nodejs",
     links: {
       "Sharp Website": "https://sharp.pixelplumbing.com/",
-      "Documentation": "https://sharp.pixelplumbing.com/api-channel#extractchannel",
+      "Documentation": "https://sharp.pixelplumbing.com/api-operation#negate",
       "Sharp Github": "https://github.com/lovell/sharp",
       "Support Sharp": "https://opencollective.com/libvips"
     }
   }
 });
-extractChannelComponent.addInput(
-  extractChannelComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to operate on").allowMultiple(true).setRequired(true).toOmniIO()
-).addInput(
-  extractChannelComponent.createInput("channel", "string").set("title", "Channel").set("description", "The channel to extract.").setDefault("red").setChoices(["red", "green", "blue", "alpha"]).toOmniIO()
+component4.addInput(
+  component4.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to rotate").setRequired(true).allowMultiple(true).setControl({
+    controlType: "AlpineLabelComponent"
+  }).toOmniIO()
+);
+component4.addInput(
+  component4.createInput("alpha", "boolean").set("description", "Whether to negate alpha").toOmniIO()
 ).addOutput(
-  extractChannelComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes11.EXEC, async (payload, ctx) => {
+  component4.createOutput("images", "object", "image", { array: true }).set("description", "The negated images").toOmniIO()
+).setMacro(OmniComponentMacroTypes10.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
     let results = await Promise.all(images.map(async (image) => {
-      image.data = await sharp12(image.data).extractChannel(payload.channel).toBuffer();
+      let buffer = image.data;
+      let sharpImage = sharp11(buffer);
+      sharpImage.negate({ alpha: payload.alpha });
+      let result = await sharpImage.toBuffer();
+      image.data = result;
       return image;
     }));
     payload.images = await writeToCdn_default(ctx, results);
   }
   return { images: payload.images };
 });
-var SharpExtractChannelComponent = extractChannelComponent.toJSON();
-var SharpExtractChannelComponent_default = SharpExtractChannelComponent;
+var SharpNegateComponent = component4.toJSON();
+var SharpNegateComponent_default = SharpNegateComponent;
 
 // components/SharpRemoveAlphaComponent.ts
-import { OAIBaseComponent as OAIBaseComponent12, OmniComponentMacroTypes as OmniComponentMacroTypes12 } from "omni-sockets";
-import sharp13 from "sharp";
-var NS_OMNI12 = "sharp";
-var component5 = OAIBaseComponent12.create(NS_OMNI12, "removeAlpha").fromScratch().set("description", "Remove alpha channel from an image, if any.").set("title", "Remove Alpha (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
+import { OAIBaseComponent as OAIBaseComponent11, OmniComponentMacroTypes as OmniComponentMacroTypes11 } from "omni-sockets";
+import sharp12 from "sharp";
+var NS_OMNI11 = "sharp";
+var component5 = OAIBaseComponent11.create(NS_OMNI11, "removeAlpha").fromScratch().set("description", "Remove alpha channel from an image, if any.").set("title", "Remove Alpha (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
 component5.addInput(
   component5.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addOutput(
   component5.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes12.EXEC, async (payload, ctx) => {
+).setMacro(OmniComponentMacroTypes11.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
     let results = await Promise.all(images.map(async (image) => {
-      image.data = await sharp13(image.data).removeAlpha().toBuffer();
+      image.data = await sharp12(image.data).removeAlpha().toBuffer();
       return image;
     }));
     payload.images = await writeToCdn_default(ctx, results);
@@ -525,48 +494,11 @@ component5.addInput(
 var SharpRemoveAlphaComponent = component5.toJSON();
 var SharpRemoveAlphaComponent_default = SharpRemoveAlphaComponent;
 
-// components/SharpEnsureAlphaComponent.ts
-import { OAIBaseComponent as OAIBaseComponent13, OmniComponentMacroTypes as OmniComponentMacroTypes13 } from "omni-sockets";
-import sharp14 from "sharp";
-var NS_OMNI13 = "sharp";
-var ensureAlphaComponent = OAIBaseComponent13.create(NS_OMNI13, "ensureAlpha").fromScratch().set("title", "Ensure Alpha (Sharp)").set("category", "Image Manipulation").set("description", "Ensure the output image has an alpha transparency channel.").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "Ensure the output image has an alpha transparency channel. If missing, the added alpha channel will have the specified transparency level, defaulting to fully-opaque (1). This is a no-op if the image already has an alpha channel.",
-    links: {
-      "Sharp Website": "https://sharp.pixelplumbing.com/",
-      "Documentation": "https://sharp.pixelplumbing.com/api-channel#ensureAlpha",
-      "Sharp Github": "https://github.com/lovell/sharp",
-      "Support Sharp": "https://opencollective.com/libvips"
-    }
-  }
-});
-ensureAlphaComponent.addInput(
-  ensureAlphaComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).toOmniIO()
-).addInput(
-  ensureAlphaComponent.createInput("alpha", "number").set("title", "Alpha").set("description", "Alpha transparency level (0=fully-transparent, 1=fully-opaque).").setDefault(1).setConstraints(0, 1, 0.1).toOmniIO()
-).addOutput(
-  ensureAlphaComponent.createOutput("images", "object", "image", { array: true }).set("title", "Images").set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes13.EXEC, async (payload, ctx) => {
-  if (payload.images) {
-    let images = await Promise.all(payload.images.map((image) => {
-      return ctx.app.cdn.get(image.ticket);
-    }));
-    let results = await Promise.all(images.map(async (image) => {
-      image.data = await sharp14(image.data).ensureAlpha(payload.alpha).toBuffer();
-      return image;
-    }));
-    payload.images = await writeToCdn_default(ctx, results);
-  }
-  return { images: payload.images };
-});
-var SharpEnsureAlphaComponent = ensureAlphaComponent.toJSON();
-var SharpEnsureAlphaComponent_default = SharpEnsureAlphaComponent;
-
 // components/SharpResizeComponent.ts
-import { OAIBaseComponent as OAIBaseComponent14, OmniComponentMacroTypes as OmniComponentMacroTypes14 } from "omni-sockets";
-import sharp15 from "sharp";
-var NS_OMNI14 = "sharp";
-var resizeComponent = OAIBaseComponent14.create(NS_OMNI14, "resize").fromScratch().set("title", "Resize Image (Sharp)").set("description", "Resize the image to given width and height using various options.").setMethod("X-CUSTOM");
+import { OAIBaseComponent as OAIBaseComponent12, OmniComponentMacroTypes as OmniComponentMacroTypes12 } from "omni-sockets";
+import sharp13 from "sharp";
+var NS_OMNI12 = "sharp";
+var resizeComponent = OAIBaseComponent12.create(NS_OMNI12, "resize").fromScratch().set("title", "Resize Image (Sharp)").set("description", "Resize the image to given width and height using various options.").setMethod("X-CUSTOM");
 resizeComponent.addInput(
   resizeComponent.createInput("images", "object", "image", { array: true }).set("title", "Input Images").set("description", "Images to resize.").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(
@@ -597,7 +529,7 @@ resizeComponent.addInput(
       "Support Sharp": "https://opencollective.com/libvips"
     }
   }
-}).setMacro(OmniComponentMacroTypes14.EXEC, async (payload, ctx) => {
+}).setMacro(OmniComponentMacroTypes12.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
@@ -611,7 +543,7 @@ resizeComponent.addInput(
       let kernel = payload.kernel;
       let withoutEnlargement = payload.withoutEnlargement;
       let fastShrinkOnLoad = payload.fastShrinkOnLoad;
-      image.data = await sharp15(image.data).resize(
+      image.data = await sharp13(image.data).resize(
         width,
         height,
         {
@@ -633,103 +565,46 @@ resizeComponent.addInput(
 var SharpResizeComponent = resizeComponent.toJSON();
 var SharpResizeComponent_default = SharpResizeComponent;
 
-// components/SharpCompositeComponent.ts
-import { OAIBaseComponent as OAIBaseComponent15, OmniComponentMacroTypes as OmniComponentMacroTypes15 } from "omni-sockets";
-import sharp16 from "sharp";
-var NS_OMNI15 = "sharp";
-var component6 = OAIBaseComponent15.create(NS_OMNI15, "composite").fromScratch().set("description", "Composite image(s) over the processed image using various options.").set("title", "Composite Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
+// components/SharpRotationComponent.ts
+import { OAIBaseComponent as OAIBaseComponent13, OmniComponentMacroTypes as OmniComponentMacroTypes13 } from "omni-sockets";
+import sharp14 from "sharp";
+var NS_OMNI13 = "sharp";
+var component6 = OAIBaseComponent13.create(NS_OMNI13, "rotate").fromScratch().set("description", "Rotate an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Rotate Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
   source: {
-    summary: "Composite image(s) over the processed image with options for blending, placement, tiling, and more.",
+    summary: "Rotate an image using the high speed impage manipulation library Sharp for nodejs",
     links: {
       "Sharp Website": "https://sharp.pixelplumbing.com/",
-      "Documentation": "https://sharp.pixelplumbing.com/api-composite",
+      "Documentation": "https://sharp.pixelplumbing.com/api-operation#rotate",
       "Sharp Github": "https://github.com/lovell/sharp",
       "Support Sharp": "https://opencollective.com/libvips"
     }
   }
 });
 component6.addInput(
-  component6.createInput("images", "array", "image", { array: true }).set("description", "Images to be processed").setRequired(true).allowMultiple(true).toOmniIO()
-).addInput(
-  component6.createInput("compositeImages", "array", "image", { array: true }).set("description", "Images to be composited").allowMultiple(true).setRequired(true).toOmniIO()
-).addInput(
-  component6.createInput("blend", "string").set("description", "How to blend this image with the image below.").setChoices(["clear", "source", "over", "in", "out", "atop", "dest", "dest-over", "dest-in", "dest-out", "dest-atop", "xor", "add", "saturate", "multiply", "screen", "overlay", "darken", "lighten", "colour-dodge", "color-dodge", "colour-burn", "color-burn", "hard-light", "soft-light", "difference", "exclusion"], "clear").toOmniIO()
-).addInput(
-  component6.createInput("gravity", "string").set("description", "Gravity at which to place the overlay.").setChoices(["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest", "centre", "center"], "northeast").toOmniIO()
-).addInput(
-  component6.createInput("top", "number").set("description", "The pixel offset from the top edge.").toOmniIO()
-).addInput(
-  component6.createInput("left", "number").set("description", "The pixel offset from the left edge.").toOmniIO()
-).addInput(
-  component6.createInput("tile", "boolean").set("description", "Set to true to repeat the overlay image across the entire image with the given gravity.").toOmniIO()
-).addInput(
-  component6.createInput("premultiplied", "boolean").set("description", "Set to true to avoid premultiplying the image below.").toOmniIO()
-).addInput(
-  component6.createInput("density", "number").set("description", "Number representing the DPI for vector overlay image.").setDefault(72).setConstraints(1, 600, 1).toOmniIO()
-).addOutput(
-  component6.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes15.EXEC, async (payload, ctx) => {
-  if (payload.images && payload.compositeImages) {
-    let images = await Promise.all(payload.images.map((image) => {
-      return ctx.app.cdn.get(image.ticket);
-    }));
-    let compositeImages = await Promise.all(payload.compositeImages.map((image) => {
-      return ctx.app.cdn.get(image.ticket);
-    }));
-    let results = await Promise.all(images.map(async (image, index) => {
-      image.data = await sharp16(image.data).composite(compositeImages.map((compositeImage) => ({
-        input: compositeImage.data,
-        blend: payload.blend,
-        gravity: payload.gravity,
-        top: payload.top,
-        left: payload.left,
-        tile: payload.tile,
-        premultiplied: payload.premultiplied,
-        density: payload.density
-      }))).toBuffer();
-      return image;
-    }));
-    results = await writeToCdn_default(ctx, results);
-    return { images: results };
-  }
-  return {};
-});
-var SharpCompositeComponent = component6.toJSON();
-var SharpCompositeComponent_default = SharpCompositeComponent;
-
-// components/SharpNegateComponent.ts
-import { OAIBaseComponent as OAIBaseComponent16, OmniComponentMacroTypes as OmniComponentMacroTypes16 } from "omni-sockets";
-import sharp17 from "sharp";
-var NS_OMNI16 = "sharp";
-var component7 = OAIBaseComponent16.create(NS_OMNI16, "negate").fromScratch().set("description", "Negate / Invert an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Negate/Invert Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "Negate an image using the high speed impage manipulation library Sharp for nodejs",
-    links: {
-      "Sharp Website": "https://sharp.pixelplumbing.com/",
-      "Documentation": "https://sharp.pixelplumbing.com/api-operation#negate",
-      "Sharp Github": "https://github.com/lovell/sharp",
-      "Support Sharp": "https://opencollective.com/libvips"
-    }
-  }
-});
-component7.addInput(
-  component7.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to rotate").setRequired(true).allowMultiple(true).setControl({
+  component6.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to rotate").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
-);
-component7.addInput(
-  component7.createInput("alpha", "boolean").set("description", "Whether to negate alpha").toOmniIO()
+).addInput(
+  component6.createInput("angle", "number").set("description", "The angle of rotation. (optional, default 0)").setDefault(0).setConstraints(-360, 360, 1).setControl({
+    controlType: "AlpineNumWithSliderComponent"
+  }).toOmniIO()
+).addInput(
+  component6.createInput("background", "string").set("description", "Background colour when using a non-zero angle. (optional, default black)").setDefault("black").setControl({
+    controlType: "AlpineColorComponent"
+  }).toOmniIO()
 ).addOutput(
-  component7.createOutput("images", "object", "image", { array: true }).set("description", "The negated images").toOmniIO()
-).setMacro(OmniComponentMacroTypes16.EXEC, async (payload, ctx) => {
+  component6.createOutput("images", "object", "image", { array: true }).set("description", "The rotated images").toOmniIO()
+).setMacro(OmniComponentMacroTypes13.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
+    let background = payload.background || "black";
+    let angle = payload.angle || 90;
     let results = await Promise.all(images.map(async (image) => {
       let buffer = image.data;
-      let sharpImage = sharp17(buffer);
-      sharpImage.negate({ alpha: payload.alpha });
+      let sharpImage = sharp14(buffer);
+      sharpImage.rotate(angle, { background });
       let result = await sharpImage.toBuffer();
       image.data = result;
       return image;
@@ -738,11 +613,153 @@ component7.addInput(
   }
   return { images: payload.images };
 });
-var SharpNegateComponent = component7.toJSON();
-var SharpNegateComponent_default = SharpNegateComponent;
+var SharpRotateComponent = component6.toJSON();
+var SharpRotationComponent_default = SharpRotateComponent;
+
+// components/SharpStatsComponent.ts
+import { OAIBaseComponent as OAIBaseComponent14, OmniComponentMacroTypes as OmniComponentMacroTypes14 } from "omni-sockets";
+import sharp15 from "sharp";
+var NS_OMNI14 = "sharp";
+var statsComponent = OAIBaseComponent14.create(NS_OMNI14, "stats").fromScratch().set("title", "Get Image Stats (Sharp)").set("category", "Image Manipulation").set("description", "Access to pixel-derived image statistics for every channel in the image").setMethod("X-CUSTOM").setMeta({
+  source: {
+    summary: "Access to pixel-derived image statistics for every channel in the image",
+    links: {
+      "Sharp Website": "https://sharp.pixelplumbing.com/",
+      "Documentation": "https://sharp.pixelplumbing.com/api-input#stats",
+      "Sharp Github": "https://github.com/lovell/sharp",
+      "Support Sharp": "https://opencollective.com/libvips"
+    }
+  }
+});
+statsComponent.addInput(
+  statsComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to inspect").allowMultiple(true).setRequired(true).toOmniIO()
+).addOutput(
+  statsComponent.createOutput("stats", "object", "objectArray").set("title", "Stats").set("description", "Pixel-derived image statistics for every channel in the image").toOmniIO()
+).setMacro(OmniComponentMacroTypes14.EXEC, async (payload, ctx) => {
+  if (payload.images) {
+    let images = await Promise.all(payload.images.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    let results = await Promise.all(images.map(async (image) => {
+      let md = await sharp15(image.data).stats();
+      return md;
+    }));
+    payload.stats = results;
+  }
+  return { stats: payload.stats };
+});
+var SharpStatsComponent = statsComponent.toJSON();
+var SharpStatsComponent_default = SharpStatsComponent;
+
+// components/SharpTintComponent.ts
+import { OAIBaseComponent as OAIBaseComponent15, OmniComponentMacroTypes as OmniComponentMacroTypes15 } from "omni-sockets";
+import sharp16 from "sharp";
+var NS_OMNI15 = "sharp";
+var tintComponent = OAIBaseComponent15.create(NS_OMNI15, "tint").fromScratch().set("title", "Tint Image (Sharp)").set("category", "Image Manipulation").set("description", "Tints an image").setMethod("X-CUSTOM").setMeta({
+  source: {
+    summary: "Tints an image via provided RGB values",
+    links: {
+      "Sharp Website": "https://sharp.pixelplumbing.com/",
+      "Documentation": "https://sharp.pixelplumbing.com/api-operation#tint",
+      "Sharp Github": "https://github.com/lovell/sharp",
+      "Support Sharp": "https://opencollective.com/libvips"
+    }
+  }
+});
+tintComponent.addInput(
+  tintComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to blur").allowMultiple(true).setRequired(true).toOmniIO()
+).addInput(
+  tintComponent.createInput("red", "number").set("description", "Tint the red channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
+).addInput(
+  tintComponent.createInput("green", "number").set("description", "Tint the green channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
+).addInput(
+  tintComponent.createInput("blue", "number").set("description", "Tint the blue channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
+).addOutput(
+  tintComponent.createOutput("images", "object", "image", { array: true }).set("description", "The tinted images").toOmniIO()
+).setMacro(OmniComponentMacroTypes15.EXEC, async (payload, ctx) => {
+  if (payload.images) {
+    let images = await Promise.all(payload.images.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    const tint = {
+      r: parseInt(payload.red),
+      g: parseInt(payload.green),
+      b: parseInt(payload.blue)
+    };
+    let results = await Promise.all(images.map(async (image) => {
+      image.data = await sharp16(image.data).tint(tint).toBuffer();
+      return image;
+    }));
+    payload.images = await writeToCdn_default(ctx, results, { tint });
+  }
+  return { images: payload.images };
+});
+var SharpTintComponent = tintComponent.toJSON();
+var SharpTintComponent_default = SharpTintComponent;
+
+// components/SharpTrimComponent.ts
+import { OAIBaseComponent as OAIBaseComponent16, OmniComponentMacroTypes as OmniComponentMacroTypes16 } from "omni-sockets";
+import sharp17 from "sharp";
+var NS_OMNI16 = "omnitool";
+var component7 = OAIBaseComponent16.create(NS_OMNI16, "trim").fromScratch().set("description", "Trim pixels from all edges that contain values similar to the given background colour.").set("title", "Trim Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
+component7.addInput(
+  component7.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
+    controlType: "AlpineLabelComponent"
+  }).toOmniIO()
+).addInput(
+  component7.createInput("trimMode", "string").set("description", "Specify the mode for trimming: Top left pixel or Background color.").setChoices(["Top left Pixel", "Background color"], "Top left Pixel").setControl({
+    controlType: "AlpineSelectComponent"
+  }).toOmniIO()
+).addInput(
+  component7.createInput("background", "string").set("description", "Background colour to trim, used when trim mode is Background color.").setDefault("#000000").setControl({
+    controlType: "AlpineColorComponent"
+  }).toOmniIO()
+).addInput(
+  component7.createInput("threshold", "number").set("description", "The allowed difference from the above colour, a positive number.").setDefault(10).setControl({
+    controlType: "AlpineNumWithSliderComponent",
+    step: 1
+  }).toOmniIO()
+).addOutput(
+  component7.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
+).setMacro(OmniComponentMacroTypes16.EXEC, async (payload, ctx) => {
+  if (payload.images) {
+    let images = await Promise.all(payload.images.map((image) => {
+      return ctx.app.cdn.get(image.ticket);
+    }));
+    let results = await Promise.all(images.map(async (image) => {
+      if (payload.trimMode === "Background color") {
+        image.data = await sharp17(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer();
+      } else {
+        image.data = await sharp17(image.data).trim(payload.threshold).toBuffer();
+      }
+      return image;
+    }));
+    payload.images = await writeToCdn_default(ctx, results);
+  }
+  return { images: payload.images };
+});
+var SharpTrimComponent = component7.toJSON();
+var SharpTrimComponent_default = SharpTrimComponent;
 
 // extension.ts
-var components = [SharpRotationComponent_default, SharpTrimComponent_default, SharpBlurComponent_default, SharpTintComponent_default, SharpGrayscaleComponent_default, SharpExtractComponent_default, SharpMetaDataComponent_default, SharpStatsComponent_default, SharpExtendComponent_default, SharpModulateComponent_default, SharpExtractChannelComponent_default, SharpRemoveAlphaComponent_default, SharpEnsureAlphaComponent_default, SharpResizeComponent_default, SharpCompositeComponent_default, SharpNegateComponent_default];
+var components = [
+  SharpBlurComponent_default,
+  SharpCompositeComponent_default,
+  SharpEnsureAlphaComponent_default,
+  SharpExtractChannelComponent_default,
+  SharpExtractComponent_default,
+  SharpExtendComponent_default,
+  SharpGrayscaleComponent_default,
+  SharpMetaDataComponent_default,
+  SharpModulateComponent_default,
+  SharpNegateComponent_default,
+  SharpRemoveAlphaComponent_default,
+  SharpResizeComponent_default,
+  SharpRotationComponent_default,
+  SharpStatsComponent_default,
+  SharpTintComponent_default,
+  SharpTrimComponent_default
+];
 var extension_default = {
   createComponents: () => ({
     blocks: components,
