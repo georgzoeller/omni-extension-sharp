@@ -471,7 +471,7 @@ var SharpNegateComponent_default = SharpNegateComponent;
 import { OAIBaseComponent as OAIBaseComponent11, OmniComponentMacroTypes as OmniComponentMacroTypes11 } from "omni-sockets";
 import sharp12 from "sharp";
 var NS_OMNI11 = "sharp";
-var component5 = OAIBaseComponent11.create(NS_OMNI11, "prepareImage").fromScratch().set("description", "Prepare an image for further processing.").set("title", "Prepate Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
+var component5 = OAIBaseComponent11.create(NS_OMNI11, "prepareImage").fromScratch().set("description", "Prepare an image for further processing.").set("title", "Prepare Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
 component5.addInput(
   component5.createInput("image", "object", "image").set("description", "The image to operate on").set("title", "Image").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"

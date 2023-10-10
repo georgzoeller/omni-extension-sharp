@@ -8,7 +8,7 @@ let component = OAIBaseComponent
   .create(NS_OMNI, 'prepareImage')
   .fromScratch()
   .set('description', 'Prepare an image for further processing.')
-  .set('title', 'Prepate Image (Sharp)')
+  .set('title', 'Prepare Image (Sharp)')
   .set('category', 'Image Manipulation')
   .setMethod('X-CUSTOM')
 component
