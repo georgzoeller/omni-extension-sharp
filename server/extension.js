@@ -467,38 +467,305 @@ component4.addInput(
 var SharpNegateComponent = component4.toJSON();
 var SharpNegateComponent_default = SharpNegateComponent;
 
-// components/SharpRemoveAlphaComponent.ts
+// components/SharpPrepareImageComponent.ts
 import { OAIBaseComponent as OAIBaseComponent11, OmniComponentMacroTypes as OmniComponentMacroTypes11 } from "omni-sockets";
 import sharp12 from "sharp";
 var NS_OMNI11 = "sharp";
-var component5 = OAIBaseComponent11.create(NS_OMNI11, "removeAlpha").fromScratch().set("description", "Remove alpha channel from an image, if any.").set("title", "Remove Alpha (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
+var component5 = OAIBaseComponent11.create(NS_OMNI11, "prepareImage").fromScratch().set("description", "Prepare an image for further processing.").set("title", "Prepate Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
 component5.addInput(
-  component5.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
+  component5.createInput("image", "object", "image").set("description", "The image to operate on").set("title", "Image").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addOutput(
-  component5.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes11.EXEC, async (payload, ctx) => {
+  component5.createOutput("image", "object", "image").set("title", "Image").set("description", "The processed image").toOmniIO()
+).addOutput(
+  component5.createOutput("mask", "image", "image").set("title", "Mask").toOmniIO()
+).addOutput(
+  component5.createOutput("width", "number").set("title", "Width").toOmniIO()
+).addOutput(
+  component5.createOutput("height", "number").set("title", "Height").toOmniIO()
+).addControl(
+  component5.createControl("target").set("title", "Target").setRequired(true).setControlType("AlpineSelectComponent").setChoices([
+    { title: "Stable Diffusion XL", value: "sdxl" },
+    { title: "Stable Diffusion 2.1", value: "sd2.1" },
+    { title: "Stable Diffusion 1.5", value: "sd1.5" },
+    { title: "720p", value: "720p" },
+    { title: "1080p", value: "1080p" },
+    { title: "4k Wallpaper", value: "4k" },
+    { title: "8k", value: "8k" },
+    { title: "Facebook Banner", value: "facebook" },
+    { title: "Facebook Profile", value: "fbprofile" },
+    { title: "Google Meet Background", value: "gmbackground" },
+    { title: "Instagram", value: "instagram" },
+    { title: "Phone Wallpaper", value: "phone" },
+    { title: "Snapchat", value: "snapchat" },
+    { title: "Thumbnail", value: "thumbnail" },
+    { title: "WeChat", value: "wechat" },
+    { title: "YouTube Cover", value: "youtube" },
+    { title: "A4", value: "a4" },
+    { title: "US Letter", value: "us_letter" },
+    { title: "Photo Portrait", value: "12x18" },
+    { title: "Photo Landscape", value: "18x12" }
+  ]).toOmniControl()
+);
+function getSize(value) {
+  const sizeMap = {
+    sdxl: [1024, 1024, void 0, "png"],
+    "sd1.5": [512, 512, void 0, "png"],
+    "sd2.1": [768, 768, void 0, "png"],
+    phone: [1080, 1920, void 0, "jpg"],
+    "4k": [3840, 2160, void 0, "jpg"],
+    "1080p": [1920, 1080, void 0, "jpg"],
+    "720p": [1280, 720, void 0, "jpg"],
+    "8k": [7680, 4320, void 0, "jpg"],
+    youtube: [1280, 720, void 0, "jpg"],
+    facebook: [820, 312, void 0, "jpg"],
+    fbprofile: [180, 180, void 0, "jpg"],
+    gmbackground: [1920, 1090, void 0, "jpg"],
+    instagram: [1080, 1080, void 0, "jpg"],
+    snapchat: [1080, 1920, void 0, "jpg"],
+    thumbnail: [150, 150, void 0, "jpg"],
+    wechat: [900, 500, void 0, "jpg"],
+    a4: [Math.round(8.27 * 300), Math.round(11.69 * 300), 300, "jpg"],
+    // 2480 x 3508
+    us_letter: [Math.round(8.5 * 300), Math.round(11 * 300), 300, "jpg"],
+    // 2550 x 3300
+    "12x18": [3600, 5400, 300, "jpg"],
+    "18x12": [5400, 3600, 300, "jpg"]
+  };
+  return sizeMap[value] || [1024, 1024, void 0, "jpg"];
+}
+async function fetchAndProcessImage(cdnRecord, ctx) {
+  const entry = await ctx.app.cdn.get(cdnRecord.ticket);
+  const buffer = entry.data;
+  const image = sharp12(buffer).rotate();
+  const metadata = await image.metadata();
+  const width = metadata.width || 0;
+  const height = metadata.height || 0;
+  return {
+    buffer,
+    width,
+    height,
+    targetWidth: width,
+    targetHeight: height
+  };
+}
+async function createMask(imageInfo, feather) {
+  const { targetWidth, targetHeight } = imageInfo;
+  let { roi } = imageInfo;
+  roi ?? (roi = {
+    x0: 0,
+    y0: 0,
+    x1: targetWidth,
+    y1: targetHeight
+  });
+  const insetROI = {
+    x0: roi.x0 + (roi.x0 > 0 ? feather : 0),
+    y0: roi.y0 + (roi.y0 > 0 ? feather : 0),
+    x1: roi.x1 - (roi.x1 < targetWidth ? feather : 0),
+    y1: roi.y1 - (roi.y1 < targetHeight ? feather : 0)
+  };
+  const interior = await sharp12({
+    create: {
+      width: insetROI.x1 - insetROI.x0,
+      height: insetROI.y1 - insetROI.y0,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 1 }
+      // Black
+    }
+  }).png().toBuffer();
+  let intermediateBuffer = await sharp12({
+    create: {
+      width: targetWidth,
+      height: targetHeight,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
+      // White
+    }
+  }).composite([
+    {
+      input: interior,
+      top: insetROI.y0,
+      left: insetROI.x0
+    }
+  ]).png().toBuffer();
+  if (feather > 0) {
+    const sigma = 1 + feather / 2;
+    intermediateBuffer = await sharp12(intermediateBuffer).blur(sigma).png().toBuffer();
+  }
+  const maskImageData = await sharp12(intermediateBuffer).png().toBuffer();
+  return maskImageData;
+}
+async function SoftScale(imageInfo, target) {
+  const { width: originalWidth, height: originalHeight, targetWidth, targetHeight } = imageInfo;
+  const scaleFactorX = targetWidth / originalWidth;
+  const scaleFactorY = targetHeight / originalHeight;
+  const maxScaleFactor = Math.max(scaleFactorX, scaleFactorY);
+  let scaleFudge = 1.03;
+  if (target === "thumbnail") {
+    scaleFudge = 1.15;
+  }
+  const scaleFactorA = Math.min(scaleFactorX * scaleFudge, scaleFactorY * scaleFudge, maxScaleFactor);
+  const scaleFactorB = Math.min(scaleFactorX * scaleFudge * scaleFudge, scaleFactorY * scaleFudge * scaleFudge, maxScaleFactor);
+  let scaledWidth = Math.round(originalWidth * scaleFactorA);
+  let scaledHeight = Math.round(originalHeight * scaleFactorA);
+  if (scaleFactorX < scaleFactorY) {
+    scaledHeight = Math.round(originalHeight * scaleFactorB);
+  } else {
+    scaledWidth = Math.round(originalWidth * scaleFactorB);
+  }
+  const newBuffer = await sharp12(imageInfo.buffer).resize(scaledWidth, scaledHeight, { fit: "fill" }).toBuffer();
+  return {
+    ...imageInfo,
+    buffer: newBuffer,
+    width: scaledWidth,
+    height: scaledHeight
+  };
+}
+async function SoftCrop(imageInfo) {
+  const { width, height, targetWidth, targetHeight } = imageInfo;
+  const cropX = Math.max(0, Math.round((width - targetWidth) / 2));
+  const cropY = Math.max(0, Math.round((height - targetHeight) / 2));
+  const newBuffer = await sharp12(imageInfo.buffer).extract({
+    left: cropX,
+    top: cropY,
+    width: Math.min(width, targetWidth),
+    height: Math.min(height, targetHeight)
+  }).toBuffer();
+  return {
+    ...imageInfo,
+    buffer: newBuffer,
+    width: Math.min(width, targetWidth),
+    height: Math.min(height, targetHeight)
+  };
+}
+async function ExtendWithBlackBars(imageInfo) {
+  const { width, height, targetWidth, targetHeight, roi } = imageInfo;
+  let extendX = Math.round((targetWidth - width) / 2);
+  let extendY = Math.round((targetHeight - height) / 2);
+  if (roi) {
+    const targetCenterX = targetWidth / 2;
+    const targetCenterY = targetHeight / 2;
+    const roiCenterX = (roi.x0 + roi.x1) / 2;
+    const roiCenterY = (roi.y0 + roi.y1) / 2;
+    extendX = Math.round(targetCenterX - roiCenterX);
+    extendY = Math.round(targetCenterY - roiCenterY);
+    extendX = Math.max(0, Math.min(extendX, targetWidth - width));
+    extendY = Math.max(0, Math.min(extendY, targetHeight - height));
+  }
+  const newBuffer = await sharp12(imageInfo.buffer).extend({
+    top: extendY,
+    bottom: targetHeight - height - extendY,
+    left: extendX,
+    right: targetWidth - width - extendX,
+    background: { r: 0, g: 0, b: 0, alpha: 1 }
+    // Black
+  }).toBuffer();
+  return {
+    ...imageInfo,
+    buffer: newBuffer,
+    width: targetWidth,
+    height: targetHeight,
+    roi: { x0: extendX, y0: extendY, x1: targetWidth - extendX, y1: targetHeight - extendY }
+  };
+}
+async function ExtendWithBlurredBackground(imageInfo) {
+  const { width, height, targetWidth, targetHeight, roi } = imageInfo;
+  let extendX = Math.round((targetWidth - width) / 2);
+  let extendY = Math.round((targetHeight - height) / 2);
+  if (roi) {
+    const targetCenterX = targetWidth / 2;
+    const targetCenterY = targetHeight / 2;
+    const roiCenterX = (roi.x0 + roi.x1) / 2;
+    const roiCenterY = (roi.y0 + roi.y1) / 2;
+    extendX = Math.round(targetCenterX - roiCenterX);
+    extendY = Math.round(targetCenterY - roiCenterY);
+    extendX = Math.max(0, Math.min(extendX, targetWidth - width));
+    extendY = Math.max(0, Math.min(extendY, targetHeight - height));
+  }
+  const blurRadius = Math.max(targetWidth, targetHeight) / 32;
+  const blurredBuffer = await sharp12(imageInfo.buffer).resize(targetWidth, targetHeight, { fit: "fill" }).blur(blurRadius).toBuffer();
+  const newBuffer = await sharp12(blurredBuffer).composite([
+    {
+      input: imageInfo.buffer,
+      blend: "over",
+      left: extendX,
+      top: extendY
+    }
+  ]).toBuffer();
+  return {
+    ...imageInfo,
+    buffer: newBuffer,
+    width: targetWidth,
+    height: targetHeight,
+    roi: { x0: extendX, y0: extendY, x1: targetWidth - extendX, y1: targetHeight - extendY }
+  };
+}
+component5.setMacro(OmniComponentMacroTypes11.EXEC, async (payload, ctx) => {
+  let source = payload.image;
+  const target = payload.target;
+  if (Array.isArray(source)) {
+    source = source[0];
+  }
+  const [targetWidth, targetHeight, dpi, fileFormat] = getSize(target);
+  let imageInfo = await fetchAndProcessImage(source, ctx);
+  imageInfo.targetWidth = targetWidth;
+  imageInfo.targetHeight = targetHeight;
+  imageInfo = await SoftScale(imageInfo, target);
+  imageInfo = await SoftCrop(imageInfo);
+  const useBlackBars = false;
+  if (useBlackBars) {
+    imageInfo = await ExtendWithBlackBars(imageInfo);
+  } else {
+    imageInfo = await ExtendWithBlurredBackground(imageInfo);
+  }
+  const feather = 8;
+  const maskImageData = await createMask(imageInfo, feather);
+  let transform = sharp12(imageInfo.buffer);
+  if (dpi) {
+    transform = transform.withMetadata({ density: dpi });
+  }
+  if (fileFormat) {
+    transform = transform.toFormat(fileFormat);
+  }
+  const imageData = await transform.toBuffer();
+  return { image: imageData, mask: maskImageData, width: imageInfo.width, height: imageInfo.height };
+});
+var SharpPrepareImageComponent = component5.toJSON();
+var SharpPrepareImageComponent_default = SharpPrepareImageComponent;
+
+// components/SharpRemoveAlphaComponent.ts
+import { OAIBaseComponent as OAIBaseComponent12, OmniComponentMacroTypes as OmniComponentMacroTypes12 } from "omni-sockets";
+import sharp13 from "sharp";
+var NS_OMNI12 = "sharp";
+var component6 = OAIBaseComponent12.create(NS_OMNI12, "removeAlpha").fromScratch().set("description", "Remove alpha channel from an image, if any.").set("title", "Remove Alpha (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
+component6.addInput(
+  component6.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
+    controlType: "AlpineLabelComponent"
+  }).toOmniIO()
+).addOutput(
+  component6.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
+).setMacro(OmniComponentMacroTypes12.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
     let results = await Promise.all(images.map(async (image) => {
-      image.data = await sharp12(image.data).removeAlpha().toBuffer();
+      image.data = await sharp13(image.data).removeAlpha().toBuffer();
       return image;
     }));
     payload.images = await writeToCdn_default(ctx, results);
   }
   return { images: payload.images };
 });
-var SharpRemoveAlphaComponent = component5.toJSON();
+var SharpRemoveAlphaComponent = component6.toJSON();
 var SharpRemoveAlphaComponent_default = SharpRemoveAlphaComponent;
 
 // components/SharpResizeComponent.ts
-import { OAIBaseComponent as OAIBaseComponent12, OmniComponentMacroTypes as OmniComponentMacroTypes12 } from "omni-sockets";
-import sharp13 from "sharp";
-var NS_OMNI12 = "sharp";
-var resizeComponent = OAIBaseComponent12.create(NS_OMNI12, "resize").fromScratch().set("title", "Resize Image (Sharp)").set("description", "Resize the image to given width and height using various options.").setMethod("X-CUSTOM");
+import { OAIBaseComponent as OAIBaseComponent13, OmniComponentMacroTypes as OmniComponentMacroTypes13 } from "omni-sockets";
+import sharp14 from "sharp";
+var NS_OMNI13 = "sharp";
+var resizeComponent = OAIBaseComponent13.create(NS_OMNI13, "resize").fromScratch().set("title", "Resize Image (Sharp)").set("description", "Resize the image to given width and height using various options.").setMethod("X-CUSTOM");
 resizeComponent.addInput(
   resizeComponent.createInput("images", "object", "image", { array: true }).set("title", "Input Images").set("description", "Images to resize.").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(
@@ -529,7 +796,7 @@ resizeComponent.addInput(
       "Support Sharp": "https://opencollective.com/libvips"
     }
   }
-}).setMacro(OmniComponentMacroTypes12.EXEC, async (payload, ctx) => {
+}).setMacro(OmniComponentMacroTypes13.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
@@ -543,7 +810,7 @@ resizeComponent.addInput(
       let kernel = payload.kernel;
       let withoutEnlargement = payload.withoutEnlargement;
       let fastShrinkOnLoad = payload.fastShrinkOnLoad;
-      image.data = await sharp13(image.data).resize(
+      image.data = await sharp14(image.data).resize(
         width,
         height,
         {
@@ -566,10 +833,10 @@ var SharpResizeComponent = resizeComponent.toJSON();
 var SharpResizeComponent_default = SharpResizeComponent;
 
 // components/SharpRotationComponent.ts
-import { OAIBaseComponent as OAIBaseComponent13, OmniComponentMacroTypes as OmniComponentMacroTypes13 } from "omni-sockets";
-import sharp14 from "sharp";
-var NS_OMNI13 = "sharp";
-var component6 = OAIBaseComponent13.create(NS_OMNI13, "rotate").fromScratch().set("description", "Rotate an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Rotate Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
+import { OAIBaseComponent as OAIBaseComponent14, OmniComponentMacroTypes as OmniComponentMacroTypes14 } from "omni-sockets";
+import sharp15 from "sharp";
+var NS_OMNI14 = "sharp";
+var component7 = OAIBaseComponent14.create(NS_OMNI14, "rotate").fromScratch().set("description", "Rotate an image using the high speed impage manipulation library Sharp for nodejs").set("title", "Rotate Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Rotate an image using the high speed impage manipulation library Sharp for nodejs",
     links: {
@@ -580,21 +847,21 @@ var component6 = OAIBaseComponent13.create(NS_OMNI13, "rotate").fromScratch().se
     }
   }
 });
-component6.addInput(
-  component6.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to rotate").setRequired(true).allowMultiple(true).setControl({
+component7.addInput(
+  component7.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to rotate").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addInput(
-  component6.createInput("angle", "number").set("description", "The angle of rotation. (optional, default 0)").setDefault(0).setConstraints(-360, 360, 1).setControl({
+  component7.createInput("angle", "number").set("description", "The angle of rotation. (optional, default 0)").setDefault(0).setConstraints(-360, 360, 1).setControl({
     controlType: "AlpineNumWithSliderComponent"
   }).toOmniIO()
 ).addInput(
-  component6.createInput("background", "string").set("description", "Background colour when using a non-zero angle. (optional, default black)").setDefault("black").setControl({
+  component7.createInput("background", "string").set("description", "Background colour when using a non-zero angle. (optional, default black)").setDefault("black").setControl({
     controlType: "AlpineColorComponent"
   }).toOmniIO()
 ).addOutput(
-  component6.createOutput("images", "object", "image", { array: true }).set("description", "The rotated images").toOmniIO()
-).setMacro(OmniComponentMacroTypes13.EXEC, async (payload, ctx) => {
+  component7.createOutput("images", "object", "image", { array: true }).set("description", "The rotated images").toOmniIO()
+).setMacro(OmniComponentMacroTypes14.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
@@ -603,7 +870,7 @@ component6.addInput(
     let angle = payload.angle || 90;
     let results = await Promise.all(images.map(async (image) => {
       let buffer = image.data;
-      let sharpImage = sharp14(buffer);
+      let sharpImage = sharp15(buffer);
       sharpImage.rotate(angle, { background });
       let result = await sharpImage.toBuffer();
       image.data = result;
@@ -613,14 +880,14 @@ component6.addInput(
   }
   return { images: payload.images };
 });
-var SharpRotateComponent = component6.toJSON();
+var SharpRotateComponent = component7.toJSON();
 var SharpRotationComponent_default = SharpRotateComponent;
 
 // components/SharpStatsComponent.ts
-import { OAIBaseComponent as OAIBaseComponent14, OmniComponentMacroTypes as OmniComponentMacroTypes14 } from "omni-sockets";
-import sharp15 from "sharp";
-var NS_OMNI14 = "sharp";
-var statsComponent = OAIBaseComponent14.create(NS_OMNI14, "stats").fromScratch().set("title", "Get Image Stats (Sharp)").set("category", "Image Manipulation").set("description", "Access to pixel-derived image statistics for every channel in the image").setMethod("X-CUSTOM").setMeta({
+import { OAIBaseComponent as OAIBaseComponent15, OmniComponentMacroTypes as OmniComponentMacroTypes15 } from "omni-sockets";
+import sharp16 from "sharp";
+var NS_OMNI15 = "sharp";
+var statsComponent = OAIBaseComponent15.create(NS_OMNI15, "stats").fromScratch().set("title", "Get Image Stats (Sharp)").set("category", "Image Manipulation").set("description", "Access to pixel-derived image statistics for every channel in the image").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Access to pixel-derived image statistics for every channel in the image",
     links: {
@@ -635,13 +902,13 @@ statsComponent.addInput(
   statsComponent.createInput("images", "object", "image", { array: true }).set("title", "Image").set("description", "The image(s) to inspect").allowMultiple(true).setRequired(true).toOmniIO()
 ).addOutput(
   statsComponent.createOutput("stats", "object", "objectArray").set("title", "Stats").set("description", "Pixel-derived image statistics for every channel in the image").toOmniIO()
-).setMacro(OmniComponentMacroTypes14.EXEC, async (payload, ctx) => {
+).setMacro(OmniComponentMacroTypes15.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
     let results = await Promise.all(images.map(async (image) => {
-      let md = await sharp15(image.data).stats();
+      let md = await sharp16(image.data).stats();
       return md;
     }));
     payload.stats = results;
@@ -652,10 +919,10 @@ var SharpStatsComponent = statsComponent.toJSON();
 var SharpStatsComponent_default = SharpStatsComponent;
 
 // components/SharpTintComponent.ts
-import { OAIBaseComponent as OAIBaseComponent15, OmniComponentMacroTypes as OmniComponentMacroTypes15 } from "omni-sockets";
-import sharp16 from "sharp";
-var NS_OMNI15 = "sharp";
-var tintComponent = OAIBaseComponent15.create(NS_OMNI15, "tint").fromScratch().set("title", "Tint Image (Sharp)").set("category", "Image Manipulation").set("description", "Tints an image").setMethod("X-CUSTOM").setMeta({
+import { OAIBaseComponent as OAIBaseComponent16, OmniComponentMacroTypes as OmniComponentMacroTypes16 } from "omni-sockets";
+import sharp17 from "sharp";
+var NS_OMNI16 = "sharp";
+var tintComponent = OAIBaseComponent16.create(NS_OMNI16, "tint").fromScratch().set("title", "Tint Image (Sharp)").set("category", "Image Manipulation").set("description", "Tints an image").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Tints an image via provided RGB values",
     links: {
@@ -676,7 +943,7 @@ tintComponent.addInput(
   tintComponent.createInput("blue", "number").set("description", "Tint the blue channel").setDefault(0).setConstraints(0, 255, 1).toOmniIO()
 ).addOutput(
   tintComponent.createOutput("images", "object", "image", { array: true }).set("description", "The tinted images").toOmniIO()
-).setMacro(OmniComponentMacroTypes15.EXEC, async (payload, ctx) => {
+).setMacro(OmniComponentMacroTypes16.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
@@ -687,7 +954,7 @@ tintComponent.addInput(
       b: parseInt(payload.blue)
     };
     let results = await Promise.all(images.map(async (image) => {
-      image.data = await sharp16(image.data).tint(tint).toBuffer();
+      image.data = await sharp17(image.data).tint(tint).toBuffer();
       return image;
     }));
     payload.images = await writeToCdn_default(ctx, results, { tint });
@@ -698,39 +965,39 @@ var SharpTintComponent = tintComponent.toJSON();
 var SharpTintComponent_default = SharpTintComponent;
 
 // components/SharpTrimComponent.ts
-import { OAIBaseComponent as OAIBaseComponent16, OmniComponentMacroTypes as OmniComponentMacroTypes16 } from "omni-sockets";
-import sharp17 from "sharp";
-var NS_OMNI16 = "omnitool";
-var component7 = OAIBaseComponent16.create(NS_OMNI16, "trim").fromScratch().set("description", "Trim pixels from all edges that contain values similar to the given background colour.").set("title", "Trim Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
-component7.addInput(
-  component7.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
+import { OAIBaseComponent as OAIBaseComponent17, OmniComponentMacroTypes as OmniComponentMacroTypes17 } from "omni-sockets";
+import sharp18 from "sharp";
+var NS_OMNI17 = "omnitool";
+var component8 = OAIBaseComponent17.create(NS_OMNI17, "trim").fromScratch().set("description", "Trim pixels from all edges that contain values similar to the given background colour.").set("title", "Trim Image (Sharp)").set("category", "Image Manipulation").setMethod("X-CUSTOM");
+component8.addInput(
+  component8.createInput("images", "object", "image", { array: true }).set("description", "The image(s) to operate on").setRequired(true).allowMultiple(true).setControl({
     controlType: "AlpineLabelComponent"
   }).toOmniIO()
 ).addInput(
-  component7.createInput("trimMode", "string").set("description", "Specify the mode for trimming: Top left pixel or Background color.").setChoices(["Top left Pixel", "Background color"], "Top left Pixel").setControl({
+  component8.createInput("trimMode", "string").set("description", "Specify the mode for trimming: Top left pixel or Background color.").setChoices(["Top left Pixel", "Background color"], "Top left Pixel").setControl({
     controlType: "AlpineSelectComponent"
   }).toOmniIO()
 ).addInput(
-  component7.createInput("background", "string").set("description", "Background colour to trim, used when trim mode is Background color.").setDefault("#000000").setControl({
+  component8.createInput("background", "string").set("description", "Background colour to trim, used when trim mode is Background color.").setDefault("#000000").setControl({
     controlType: "AlpineColorComponent"
   }).toOmniIO()
 ).addInput(
-  component7.createInput("threshold", "number").set("description", "The allowed difference from the above colour, a positive number.").setDefault(10).setControl({
+  component8.createInput("threshold", "number").set("description", "The allowed difference from the above colour, a positive number.").setDefault(10).setControl({
     controlType: "AlpineNumWithSliderComponent",
     step: 1
   }).toOmniIO()
 ).addOutput(
-  component7.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
-).setMacro(OmniComponentMacroTypes16.EXEC, async (payload, ctx) => {
+  component8.createOutput("images", "object", "image", { array: true }).set("description", "The processed images").toOmniIO()
+).setMacro(OmniComponentMacroTypes17.EXEC, async (payload, ctx) => {
   if (payload.images) {
     let images = await Promise.all(payload.images.map((image) => {
       return ctx.app.cdn.get(image.ticket);
     }));
     let results = await Promise.all(images.map(async (image) => {
       if (payload.trimMode === "Background color") {
-        image.data = await sharp17(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer();
+        image.data = await sharp18(image.data).trim({ background: payload.background, threshold: payload.threshold }).toBuffer();
       } else {
-        image.data = await sharp17(image.data).trim(payload.threshold).toBuffer();
+        image.data = await sharp18(image.data).trim(payload.threshold).toBuffer();
       }
       return image;
     }));
@@ -738,7 +1005,7 @@ component7.addInput(
   }
   return { images: payload.images };
 });
-var SharpTrimComponent = component7.toJSON();
+var SharpTrimComponent = component8.toJSON();
 var SharpTrimComponent_default = SharpTrimComponent;
 
 // extension.ts
@@ -753,6 +1020,7 @@ var components = [
   SharpMetaDataComponent_default,
   SharpModulateComponent_default,
   SharpNegateComponent_default,
+  SharpPrepareImageComponent_default,
   SharpRemoveAlphaComponent_default,
   SharpResizeComponent_default,
   SharpRotationComponent_default,

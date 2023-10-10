@@ -9,6 +9,7 @@ import SharpGrayscaleComponent from "./components/SharpGrayscaleComponent"
 import SharpMetaDataComponent from "./components/SharpMetaDataComponent"
 import SharpModulateComponent from "./components/SharpModulateComponent"
 import SharpNegateComponent from "./components/SharpNegateComponent"
+import SharpPrepareImageComponent from "./components/SharpPrepareImageComponent"
 import SharpRemoveAlphaComponent from "./components/SharpRemoveAlphaComponent"
 import SharpResizeComponent from "./components/SharpResizeComponent"
 import SharpRotationComponent from "./components/SharpRotationComponent"
@@ -27,6 +28,7 @@ let components = [
   SharpMetaDataComponent,
   SharpModulateComponent,
   SharpNegateComponent,
+  SharpPrepareImageComponent,
   SharpRemoveAlphaComponent,
   SharpResizeComponent,
   SharpRotationComponent,
