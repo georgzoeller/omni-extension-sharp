@@ -6,6 +6,7 @@ import SharpExtractChannelComponent from "./components/SharpExtractChannelCompon
 import SharpExtractComponent from "./components/SharpExtractComponent"
 import SharpExtendComponent from "./components/SharpExtendComponent"
 import SharpGrayscaleComponent from "./components/SharpGrayscaleComponent"
+import SharpMaskedColorComponent from "./components/SharpMaskedColorComponent"
 import SharpMetaDataComponent from "./components/SharpMetaDataComponent"
 import SharpModulateComponent from "./components/SharpModulateComponent"
 import SharpNegateComponent from "./components/SharpNegateComponent"
@@ -25,6 +26,7 @@ let components = [
   SharpExtractComponent,
   SharpExtendComponent,
   SharpGrayscaleComponent,
+  SharpMaskedColorComponent,
   SharpMetaDataComponent,
   SharpModulateComponent,
   SharpNegateComponent,
