@@ -821,7 +821,7 @@ var SharpRemoveAlphaComponent_default = SharpRemoveAlphaComponent;
 import { OAIBaseComponent as OAIBaseComponent14, OmniComponentMacroTypes as OmniComponentMacroTypes14 } from "omni-sockets";
 import sharp15 from "sharp";
 var NS_OMNI14 = "sharp";
-var resizeComponent = OAIBaseComponent14.create(NS_OMNI14, "resize").fromScratch().set("title", "Resize Image (Sharp)").set("description", "Resize the image to given width and height using various options.").setMethod("X-CUSTOM");
+var resizeComponent = OAIBaseComponent14.create(NS_OMNI14, "resize").fromScratch().set("title", "Resize Image (Sharp)").set("description", "Resize the image to given width and height using various options.").set("category", "Image Manipulation").setMethod("X-CUSTOM");
 resizeComponent.addInput(
   resizeComponent.createInput("images", "object", "image", { array: true }).set("title", "Input Images").set("description", "Images to resize.").allowMultiple(true).setRequired(true).toOmniIO()
 ).addInput(

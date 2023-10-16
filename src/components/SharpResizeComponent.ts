@@ -10,6 +10,7 @@ let resizeComponent = OAIBaseComponent
     .fromScratch()
     .set('title', 'Resize Image (Sharp)')
     .set('description', 'Resize the image to given width and height using various options.')
+    .set('category', 'Image Manipulation')
     .setMethod('X-CUSTOM')
 resizeComponent.
     addInput(
