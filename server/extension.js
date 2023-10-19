@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 // components/SharpBlurComponent.ts
 import { OAIBaseComponent, OmniComponentMacroTypes } from "omni-sockets";
 import sharp2 from "sharp";

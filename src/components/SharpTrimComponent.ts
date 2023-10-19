@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'omni-sockets'
 const NS_OMNI = 'omnitool';
 import sharp from 'sharp'

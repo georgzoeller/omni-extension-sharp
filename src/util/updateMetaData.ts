@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 import sharp from 'sharp';
 
 // Takes an image CDNResource and updates the meta data using sharp

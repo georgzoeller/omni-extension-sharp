@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 // Maintain imports and the `components` array in alphabetical order to reduce git conflicts.
 import SharpBlurComponent from "./components/SharpBlurComponent"
 import SharpCompositeComponent from "./components/SharpCompositeComponent"
