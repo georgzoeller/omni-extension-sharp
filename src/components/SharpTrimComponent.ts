@@ -4,7 +4,7 @@
  */
 
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'omni-sockets'
-const NS_OMNI = 'omnitool';
+const NS_OMNI = 'sharp';
 import sharp from 'sharp'
 import writeToCdn from '../util/writeToCdn'
 
